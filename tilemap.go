@@ -72,27 +72,25 @@ func (t *TileMap) Init() {
 		for i := 0; i < len(t.Data); i++ {
 			for j := 0; j < len(t.Data[i]); j++ {
 				xOffset := float32(t.TileSet.TW) / 2.0
-				yOffset := 400.0 - float32(t.TileSet.TH)/2.0 - float32(len(t.Data)*t.TileSet.TH)
+				yOffset := 400.0 + float32(t.TileSet.TH)/2.0 - float32(len(t.Data)*t.TileSet.TH)
 				x := float32(j*t.TileSet.TW) + xOffset
 				y := float32(i*t.TileSet.TH) + yOffset
 				w := float32(t.TileSet.TW) / 2.0
 				h := float32(t.TileSet.TH) / 2.0
 				switch t.Data[i][j] {
 				case 1:
+					t.Planes = append(t.Planes, Line{Vec2{x + w, y - h}, Vec2{x + w, y + h}})
+					t.Planes = append(t.Planes, Line{Vec2{x + w, y + h}, Vec2{x - w, y + h}})
+					t.Planes = append(t.Planes, Line{Vec2{x - w, y + h}, Vec2{x + w, y - h}})
 				case 2:
+					t.Planes = append(t.Planes, Line{Vec2{x - w, y - h}, Vec2{x + w, y + h}})
+					t.Planes = append(t.Planes, Line{Vec2{x + w, y + h}, Vec2{x - w, y + h}})
+					t.Planes = append(t.Planes, Line{Vec2{x - w, y + h}, Vec2{x - w, y - h}})
 				case 3:
-					if !tileOccupied(t, j, i-1) {
-						t.Planes = append(t.Planes, Line{Vec2{x - w, y - h}, Vec2{x + w, y - h}})
-					}
-					if !tileOccupied(t, j+1, i) {
-						t.Planes = append(t.Planes, Line{Vec2{x + w, y - h}, Vec2{x + w, y + h}})
-					}
-					if !tileOccupied(t, j, i+1) {
-						t.Planes = append(t.Planes, Line{Vec2{x + w, y + h}, Vec2{x - w, y + h}})
-					}
-					if !tileOccupied(t, j-1, i) {
-						t.Planes = append(t.Planes, Line{Vec2{x - w, y + h}, Vec2{x - w, y - h}})
-					}
+					t.Planes = append(t.Planes, Line{Vec2{x - w, y - h}, Vec2{x + w, y - h}})
+					t.Planes = append(t.Planes, Line{Vec2{x + w, y - h}, Vec2{x + w, y + h}})
+					t.Planes = append(t.Planes, Line{Vec2{x + w, y + h}, Vec2{x - w, y + h}})
+					t.Planes = append(t.Planes, Line{Vec2{x - w, y + h}, Vec2{x - w, y - h}})
 				}
 			}
 		}
@@ -104,7 +102,7 @@ func (t *TileMap) Destroy() {}
 
 func (t *TileMap) Draw() {
 	xOffset := float32(t.TileSet.TW) / 2.0
-	yOffset := 400.0 - float32(t.TileSet.TH)/2.0 - float32(len(t.Data)*t.TileSet.TH)
+	yOffset := 400.0 + float32(t.TileSet.TH)/2.0 - float32(len(t.Data)*t.TileSet.TH)
 	for i, row := range t.Data {
 		for j, tile := range row {
 			if tile != 0 {

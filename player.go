@@ -25,7 +25,7 @@ func (p *Player) Init() {
 }
 func (p *Player) Update() {
 
-	if input.IsKeyDown("left") {
+	/*if input.IsKeyDown("left") {
 		p.xspeed -= 0.25
 		p.SetScale2D(-16, 16)
 	}
@@ -34,11 +34,11 @@ func (p *Player) Update() {
 		p.SetScale2D(16, 16)
 	}
 	if input.IsKeyPressed("up") {
-		p.yspeed = -16
+		p.yspeed = -6
 	}
-	p.yspeed += 0.5
+	p.yspeed += 0.25*/
 
-	/*if input.IsKeyDown("left") {
+	if input.IsKeyDown("left") {
 		p.xspeed = -1
 	}
 	if input.IsKeyDown("right") {
@@ -49,7 +49,8 @@ func (p *Player) Update() {
 	}
 	if input.IsKeyDown("down") {
 		p.yspeed = 1
-	}*/
+	}
+
 	p.xspeed *= 0.9
 	p.yspeed *= 0.9
 	if math.Abs(float64(p.xspeed)) < 0.01 {
@@ -59,7 +60,14 @@ func (p *Player) Update() {
 		p.yspeed = 0
 	}
 	if CurrentLevel != nil {
-		p.xspeed, p.yspeed = MoveAgainst2(&p.Transform, CurrentLevel.Planes, p.xspeed, p.yspeed, 7.5)
+		//yspeedp := p.yspeed
+		p.xspeed, p.yspeed = MoveAgainst2(&p.Transform, CurrentLevel.Planes, p.xspeed, p.yspeed, 8)
+		//only apply gravity if not on the ground
+		/*if yspeedp == p.yspeed {
+			p.yspeed += 0.25
+		} else {
+			p.yspeed = 0
+		}*/
 	}
 	p.Transform.Translate2D(p.xspeed, p.yspeed)
 	if p.GetPositionV().Y()+8 > 400 {
