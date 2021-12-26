@@ -11,9 +11,10 @@ import (
 
 type Player struct {
 	transform.Transform
-	hp     int8
-	xspeed float32
-	yspeed float32
+	hp      int8
+	xspeed  float32
+	yspeed  float32
+	gravity float32
 }
 
 var CurrentLevel *TileMap = nil
@@ -22,10 +23,11 @@ func (p *Player) Init() {
 	p.Transform = transform.Origin2D(16, 16)
 	p.Transform.SetPosition(0, 0, 0)
 	p.hp = 10
+	p.gravity = 0.1
 }
 func (p *Player) Update() {
 
-	/*if input.IsKeyDown("left") {
+	if input.IsKeyDown("left") {
 		p.xspeed -= 0.25
 		p.SetScale2D(-16, 16)
 	}
@@ -34,11 +36,11 @@ func (p *Player) Update() {
 		p.SetScale2D(16, 16)
 	}
 	if input.IsKeyPressed("up") {
-		p.yspeed = -6
+		p.yspeed = -4
 	}
-	p.yspeed += 0.25*/
+	p.yspeed += p.gravity
 
-	if input.IsKeyDown("left") {
+	/*if input.IsKeyDown("left") {
 		p.xspeed = -1
 	}
 	if input.IsKeyDown("right") {
@@ -49,25 +51,25 @@ func (p *Player) Update() {
 	}
 	if input.IsKeyDown("down") {
 		p.yspeed = 1
-	}
+	}*/
 
 	p.xspeed *= 0.9
-	p.yspeed *= 0.9
-	if math.Abs(float64(p.xspeed)) < 0.01 {
+	//p.yspeed *= 0.9
+	if math.Abs(float64(p.xspeed)) < 0.1 {
 		p.xspeed = 0
 	}
-	if math.Abs(float64(p.yspeed)) < 0.01 {
+	if math.Abs(float64(p.yspeed)) < 0.1 {
 		p.yspeed = 0
 	}
 	if CurrentLevel != nil {
-		//yspeedp := p.yspeed
-		p.xspeed, p.yspeed = MoveAgainst2(&p.Transform, CurrentLevel.Planes, p.xspeed, p.yspeed, 8)
-		//only apply gravity if not on the ground
-		/*if yspeedp == p.yspeed {
-			p.yspeed += 0.25
+		yspeedp := p.yspeed
+		p.xspeed, p.yspeed = MoveAgainstLines(&p.Transform, CurrentLevel.Planes, p.xspeed, p.yspeed, 7.5)
+		//only apply gravity if not on ground (yspeed is changing)
+		if yspeedp == p.yspeed {
+			p.gravity = 0.2
 		} else {
-			p.yspeed = 0
-		}*/
+			p.gravity = 0
+		}
 	}
 	p.Transform.Translate2D(p.xspeed, p.yspeed)
 	if p.GetPositionV().Y()+8 > 400 {

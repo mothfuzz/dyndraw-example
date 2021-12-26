@@ -29,7 +29,7 @@ type TileMap struct {
 	render.SpriteAnimation
 }
 
-func tileOccupied(t *TileMap, x, y int) bool {
+func tileOccupied(t *TileMap, x, y int, mask []uint8) bool {
 	if x < 0 {
 		return false
 	}
@@ -42,10 +42,12 @@ func tileOccupied(t *TileMap, x, y int) bool {
 	if y >= len(t.Data) {
 		return false
 	}
-	if t.Data[y][x] != 3 {
-		return false
+	for _, val := range mask {
+		if t.Data[y][x] == val {
+			return true
+		}
 	}
-	return true
+	return false
 }
 
 func (t *TileMap) Init() {
@@ -79,18 +81,26 @@ func (t *TileMap) Init() {
 				h := float32(t.TileSet.TH) / 2.0
 				switch t.Data[i][j] {
 				case 1:
-					t.Planes = append(t.Planes, Line{Vec2{x + w, y - h}, Vec2{x + w, y + h}})
-					t.Planes = append(t.Planes, Line{Vec2{x + w, y + h}, Vec2{x - w, y + h}})
+					//t.Planes = append(t.Planes, Line{Vec2{x + w, y - h}, Vec2{x + w, y + h}})
+					//t.Planes = append(t.Planes, Line{Vec2{x + w, y + h}, Vec2{x - w, y + h}})
 					t.Planes = append(t.Planes, Line{Vec2{x - w, y + h}, Vec2{x + w, y - h}})
 				case 2:
 					t.Planes = append(t.Planes, Line{Vec2{x - w, y - h}, Vec2{x + w, y + h}})
-					t.Planes = append(t.Planes, Line{Vec2{x + w, y + h}, Vec2{x - w, y + h}})
-					t.Planes = append(t.Planes, Line{Vec2{x - w, y + h}, Vec2{x - w, y - h}})
+					//t.Planes = append(t.Planes, Line{Vec2{x + w, y + h}, Vec2{x - w, y + h}})
+					//t.Planes = append(t.Planes, Line{Vec2{x - w, y + h}, Vec2{x - w, y - h}})
 				case 3:
-					t.Planes = append(t.Planes, Line{Vec2{x - w, y - h}, Vec2{x + w, y - h}})
-					t.Planes = append(t.Planes, Line{Vec2{x + w, y - h}, Vec2{x + w, y + h}})
-					t.Planes = append(t.Planes, Line{Vec2{x + w, y + h}, Vec2{x - w, y + h}})
-					t.Planes = append(t.Planes, Line{Vec2{x - w, y + h}, Vec2{x - w, y - h}})
+					if !tileOccupied(t, j, i-1, []uint8{3, 2, 1}) {
+						t.Planes = append(t.Planes, Line{Vec2{x - w, y - h}, Vec2{x + w, y - h}})
+					}
+					if !tileOccupied(t, j+1, i, []uint8{3, 2}) {
+						t.Planes = append(t.Planes, Line{Vec2{x + w, y - h}, Vec2{x + w, y + h}})
+					}
+					if !tileOccupied(t, j, i+1, []uint8{3}) {
+						t.Planes = append(t.Planes, Line{Vec2{x + w, y + h}, Vec2{x - w, y + h}})
+					}
+					if !tileOccupied(t, j-1, i, []uint8{3, 1}) {
+						t.Planes = append(t.Planes, Line{Vec2{x - w, y + h}, Vec2{x - w, y - h}})
+					}
 				}
 			}
 		}
@@ -157,7 +167,7 @@ func pointInCircle(p Vec2, c Vec2, r float32) bool {
 
 //moves a bounding sphere against arbitrary planes
 //bounding sphere plane. not binary space partition
-func MoveAgainst2(t *transform.Transform, planes []Line, xspeed float32, yspeed float32, radius float32) (float32, float32) {
+func MoveAgainstLines(t *transform.Transform, planes []Line, xspeed float32, yspeed float32, radius float32) (float32, float32) {
 	velocity := Vec2{xspeed, yspeed}
 	pos := t.GetPositionV().Vec2().Add(velocity)
 	//pos = pos.Add(Vec2{radius, radius})
