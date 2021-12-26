@@ -67,7 +67,7 @@ func (t *TileMap) Init() {
 				float32(t.TileSet.TH) / totalHeight,
 			})
 			fmt.Println(t.SpriteAnimation.Frames[len(t.SpriteAnimation.Frames)-1])
-			t.SpriteAnimation.Tags["tiles"] = append(t.SpriteAnimation.Tags["tiles"], i+j)
+			t.SpriteAnimation.Tags["tiles"] = append(t.SpriteAnimation.Tags["tiles"], i*t.TileSet.W+j)
 		}
 	}
 	if t.Planes == nil {
@@ -101,6 +101,10 @@ func (t *TileMap) Init() {
 					if !tileOccupied(t, j-1, i, []uint8{3, 1}) {
 						t.Planes = append(t.Planes, Line{Vec2{x - w, y + h}, Vec2{x - w, y - h}})
 					}
+				case 9:
+					t.Planes = append(t.Planes, Line{Vec2{x - w, y + h}, Vec2{x + w, y}})
+				case 10:
+					t.Planes = append(t.Planes, Line{Vec2{x - w, y}, Vec2{x + w, y + h}})
 				}
 			}
 		}
