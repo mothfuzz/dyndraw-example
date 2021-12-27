@@ -7,7 +7,6 @@ import (
 	. "github.com/go-gl/mathgl/mgl32"
 	"github.com/mothfuzz/dyndraw/framework/render"
 	"github.com/mothfuzz/dyndraw/framework/transform"
-	//"github.com/veandco/go-sdl2/sdl"
 )
 
 type TileSet struct {
@@ -50,6 +49,12 @@ func tileOccupied(t *TileMap, x, y int, mask []uint8) bool {
 	return false
 }
 
+func (t *TileMap) offsets() (float32, float32) {
+	xOffset := float32(t.TileSet.TW) / 2.0
+	yOffset := 400.0 + float32(t.TileSet.TH)/2.0 - float32(len(t.Data)*t.TileSet.TH)
+	return xOffset, yOffset
+}
+
 func (t *TileMap) Init() {
 	t.Transform = transform.Origin2D(t.TileSet.TW, t.TileSet.TH)
 	t.SpriteAnimation = render.SpriteAnimation{
@@ -73,21 +78,16 @@ func (t *TileMap) Init() {
 	if t.Planes == nil {
 		for i := 0; i < len(t.Data); i++ {
 			for j := 0; j < len(t.Data[i]); j++ {
-				xOffset := float32(t.TileSet.TW) / 2.0
-				yOffset := 400.0 + float32(t.TileSet.TH)/2.0 - float32(len(t.Data)*t.TileSet.TH)
+				xOffset, yOffset := t.offsets()
 				x := float32(j*t.TileSet.TW) + xOffset
 				y := float32(i*t.TileSet.TH) + yOffset
 				w := float32(t.TileSet.TW) / 2.0
 				h := float32(t.TileSet.TH) / 2.0
 				switch t.Data[i][j] {
 				case 1:
-					//t.Planes = append(t.Planes, Line{Vec2{x + w, y - h}, Vec2{x + w, y + h}})
-					//t.Planes = append(t.Planes, Line{Vec2{x + w, y + h}, Vec2{x - w, y + h}})
 					t.Planes = append(t.Planes, Line{Vec2{x - w, y + h}, Vec2{x + w, y - h}})
 				case 2:
 					t.Planes = append(t.Planes, Line{Vec2{x - w, y - h}, Vec2{x + w, y + h}})
-					//t.Planes = append(t.Planes, Line{Vec2{x + w, y + h}, Vec2{x - w, y + h}})
-					//t.Planes = append(t.Planes, Line{Vec2{x - w, y + h}, Vec2{x - w, y - h}})
 				case 3:
 					if !tileOccupied(t, j, i-1, []uint8{3, 2, 1}) {
 						t.Planes = append(t.Planes, Line{Vec2{x - w, y - h}, Vec2{x + w, y - h}})
@@ -115,8 +115,7 @@ func (t *TileMap) Update()  {}
 func (t *TileMap) Destroy() {}
 
 func (t *TileMap) Draw() {
-	xOffset := float32(t.TileSet.TW) / 2.0
-	yOffset := 400.0 + float32(t.TileSet.TH)/2.0 - float32(len(t.Data)*t.TileSet.TH)
+	xOffset, yOffset := t.offsets()
 	for i, row := range t.Data {
 		for j, tile := range row {
 			if tile != 0 {
@@ -170,7 +169,6 @@ func pointInCircle(p Vec2, c Vec2, r float32) bool {
 }
 
 //moves a bounding sphere against arbitrary planes
-//bounding sphere plane. not binary space partition
 func MoveAgainstLines(t *transform.Transform, planes []Line, xspeed float32, yspeed float32, radius float32) (float32, float32) {
 	velocity := Vec2{xspeed, yspeed}
 	pos := t.GetPositionV().Vec2().Add(velocity)
@@ -194,7 +192,60 @@ func MoveAgainstLines(t *transform.Transform, planes []Line, xspeed float32, ysp
 			}
 		}
 	}
+	t.Translate2D(velocity.X(), velocity.Y())
 	return velocity.X(), velocity.Y()
+}
+
+func CheckTile(t *transform.Transform, tm *TileMap, w, h float32, mask []uint8) bool {
+	xOffset, yOffset := tm.offsets()
+	pos := t.GetPositionV().Vec2().Sub(Vec2{xOffset, yOffset})
+	//since we're using center coords we have to offset it
+	//by a half-width for the rounding to work
+	//otherwise pretty straightforward
+	leftTile := int(math.Floor(float64(pos.X()-w/2)/float64(tm.TW) + 0.5))
+	topTile := int(math.Floor(float64(pos.Y()-h/2)/float64(tm.TH) + 0.5))
+	rightTile := int(math.Ceil(float64(pos.X()+w/2)/float64(tm.TW)+0.5)) - 1
+	bottomTile := int(math.Ceil(float64(pos.Y()+h/2)/float64(tm.TH)+0.5)) - 1
+
+	for y := topTile; y <= bottomTile; y++ {
+		for x := leftTile; x <= rightTile; x++ {
+			/*gridTransform := transform.Origin2D(tm.TW, tm.TH)
+			gridTransform.SetPosition2D(float32(x*tm.TW)+xOffset, float32(y*tm.TH)+yOffset)
+			render.DrawSprite("playerbox.png", gridTransform.Mat4())*/
+			if tileOccupied(tm, x, y, mask) {
+				return true
+			}
+		}
+	}
+	return false
+}
+func MoveAgainstTiles(t *transform.Transform, tm *TileMap, xspeed, yspeed float32, w, h float32) (float32, float32) {
+	pos := t.GetPositionV()
+	tw := float32(tm.TW)
+	th := float32(tm.TH)
+	t.Translate2D(xspeed, 0)
+	if CheckTile(t, tm, w, h, []uint8{3}) {
+		x, y := t.GetPositionV().Vec2().Elem()
+		if xspeed > 0 {
+			x = Round((pos.X()+w/2)/tw, 0)*tw - w/2
+		} else {
+			x = Round((pos.X()-w/2)/tw, 0)*tw + w/2
+		}
+		xspeed = 0
+		t.SetPosition2D(x, y)
+	}
+	t.Translate2D(0, yspeed)
+	if CheckTile(t, tm, w, h, []uint8{3}) {
+		x, y := t.GetPositionV().Vec2().Elem()
+		if yspeed > 0 {
+			y = Round((pos.Y()+h/2)/th, 0)*th - h/2
+		} else {
+			y = Round((pos.Y()-h/2)/th, 0)*th + h/2
+		}
+		yspeed = 0
+		t.SetPosition2D(x, y)
+	}
+	return xspeed, yspeed
 }
 
 /*
