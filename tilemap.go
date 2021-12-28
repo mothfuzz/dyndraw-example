@@ -20,10 +20,44 @@ type Line struct {
 	b Vec2
 }
 
+//actually a triangle
+type Plane struct {
+	transform.Transform
+	normal Vec3
+	points [3]Vec3
+}
+
+func triNorm(a, b, c Vec3) Vec3 {
+	//(B - A) x (C - A)
+	return b.Sub(a).Cross(c.Sub(a)).Normalize()
+}
+func NewPlane(x, y, z float32, a, b, c Vec3) Plane {
+	t := transform.Origin()
+	t.Translate(x, y, z)
+	n := triNorm(a, b, c)
+	return Plane{t, n, [3]Vec3{a, b, c}}
+}
+
+//-
+func newXPlane(x, y, l float32) Plane {
+	a := Vec3{x, y, -l}
+	b := Vec3{x + l/2, y, 0}
+	c := Vec3{x - l/2, y, 0}
+	return NewPlane(x, y, 0, a, b, c)
+}
+
+//|
+func newYPlane(x, y, l float32) Plane {
+	a := Vec3{x, y, -l}
+	b := Vec3{x, y - l/2, 0}
+	c := Vec3{x, y + l/2, 0}
+	return NewPlane(x, y, 0, a, b, c)
+}
+
 type TileMap struct {
 	TileSet
 	Data   [][]uint8
-	Planes []Line
+	Planes []Plane
 	transform.Transform
 	render.SpriteAnimation
 }
@@ -81,30 +115,26 @@ func (t *TileMap) Init() {
 				xOffset, yOffset := t.offsets()
 				x := float32(j*t.TileSet.TW) + xOffset
 				y := float32(i*t.TileSet.TH) + yOffset
-				w := float32(t.TileSet.TW) / 2.0
-				h := float32(t.TileSet.TH) / 2.0
+				w := float32(t.TileSet.TW)
+				h := float32(t.TileSet.TH)
 				switch t.Data[i][j] {
 				case 1:
-					t.Planes = append(t.Planes, Line{Vec2{x - w, y + h}, Vec2{x + w, y - h}})
+					t.Planes = append(t.Planes, NewPlane(x, y, 0, Vec3{x, y, -w}, Vec3{x + w/2, y - h/2, 0}, Vec3{x - w/2, y + h/2, 0}))
 				case 2:
-					t.Planes = append(t.Planes, Line{Vec2{x - w, y - h}, Vec2{x + w, y + h}})
+					t.Planes = append(t.Planes, NewPlane(x, y, 0, Vec3{x, y, -w}, Vec3{x + w/2, y + h/2, 0}, Vec3{x - w/2, y - h/2, 0}))
 				case 3:
-					if !tileOccupied(t, j, i-1, []uint8{3, 2, 1}) {
-						t.Planes = append(t.Planes, Line{Vec2{x - w, y - h}, Vec2{x + w, y - h}})
+					if !tileOccupied(t, j, i-1, []uint8{1, 2, 3}) {
+						t.Planes = append(t.Planes, newXPlane(x, y-h/2, h))
 					}
-					if !tileOccupied(t, j+1, i, []uint8{3, 2}) {
-						t.Planes = append(t.Planes, Line{Vec2{x + w, y - h}, Vec2{x + w, y + h}})
+					if !tileOccupied(t, j, i+1, []uint8{1, 2, 3}) {
+						t.Planes = append(t.Planes, newXPlane(x, y+h/2, h))
 					}
-					if !tileOccupied(t, j, i+1, []uint8{3}) {
-						t.Planes = append(t.Planes, Line{Vec2{x + w, y + h}, Vec2{x - w, y + h}})
+					if !tileOccupied(t, j-1, i, []uint8{1, 3}) {
+						t.Planes = append(t.Planes, newYPlane(x-w/2, y, w))
 					}
-					if !tileOccupied(t, j-1, i, []uint8{3, 1}) {
-						t.Planes = append(t.Planes, Line{Vec2{x - w, y + h}, Vec2{x - w, y - h}})
+					if !tileOccupied(t, j+1, i, []uint8{2, 3}) {
+						t.Planes = append(t.Planes, newYPlane(x+w/2, y, w))
 					}
-				case 9:
-					t.Planes = append(t.Planes, Line{Vec2{x - w, y + h}, Vec2{x + w, y}})
-				case 10:
-					t.Planes = append(t.Planes, Line{Vec2{x - w, y}, Vec2{x + w, y + h}})
 				}
 			}
 		}
@@ -151,14 +181,10 @@ func withinLine(c Vec2, l Line) bool {
 	xMax := float32(math.Max(float64(l.a.X()), float64(l.b.X())))
 	yMin := float32(math.Min(float64(l.a.Y()), float64(l.b.Y())))
 	yMax := float32(math.Max(float64(l.a.Y()), float64(l.b.Y())))
-	//fmt.Printf("%f should be between (%f, %f)\n", c.X(), xMin, xMax)
-	//fmt.Printf("%f should be between (%f, %f)\n", c.Y(), yMin, yMax)
 	if c.X() > xMax || c.X() < xMin {
-		//fmt.Println("x out of range")
 		return false
 	}
 	if c.Y() > yMax || c.Y() < yMin {
-		//fmt.Println("y out of range")
 		return false
 	}
 	return true
@@ -172,20 +198,17 @@ func pointInCircle(p Vec2, c Vec2, r float32) bool {
 func MoveAgainstLines(t *transform.Transform, planes []Line, xspeed float32, yspeed float32, radius float32) (float32, float32) {
 	velocity := Vec2{xspeed, yspeed}
 	pos := t.GetPositionV().Vec2().Add(velocity)
-	//pos = pos.Add(Vec2{radius, radius})
 	for _, p := range planes {
 		l := p.b.Sub(p.a)
 		n := perpendicular(l).Normalize()
 		//perpendicular (i.e. shortest) vector from position to plane
 		proj := n.Mul(p.b.Sub(pos).Dot(n))
-		//if proj.Len() < radius {
 		if proj.LenSqr() < radius*radius {
 			//project point to line and check if actually within bounds
 			pproj := pos.Add(proj)
 			if withinLine(pproj, p) ||
 				pointInCircle(p.a, pos, radius) ||
 				pointInCircle(p.b, pos, radius) {
-				//fmt.Println("passed line test", sdl.GetTicks())
 				adj := n.Mul(velocity.Dot(n)) //.Mul(2) //bouncy :3
 				velocity = velocity.Sub(adj)
 				pos = t.GetPositionV().Vec2().Add(velocity)
@@ -209,9 +232,6 @@ func CheckTile(t *transform.Transform, tm *TileMap, w, h float32, mask []uint8) 
 
 	for y := topTile; y <= bottomTile; y++ {
 		for x := leftTile; x <= rightTile; x++ {
-			/*gridTransform := transform.Origin2D(tm.TW, tm.TH)
-			gridTransform.SetPosition2D(float32(x*tm.TW)+xOffset, float32(y*tm.TH)+yOffset)
-			render.DrawSprite("playerbox.png", gridTransform.Mat4())*/
 			if tileOccupied(tm, x, y, mask) {
 				return true
 			}
@@ -248,34 +268,90 @@ func MoveAgainstTiles(t *transform.Transform, tm *TileMap, xspeed, yspeed float3
 	return xspeed, yspeed
 }
 
-/*
+func insideTriangleVertices(p Vec3, r float32, a, b, c Vec3) bool {
+	r2 := r * r
+	if p.Sub(a).LenSqr() <= r2 {
+		return true
+	}
+	if p.Sub(b).LenSqr() <= r2 {
+		return true
+	}
+	if p.Sub(c).LenSqr() <= r2 {
+		return true
+	}
+	return false
+}
+func sphereEdge(p Vec3, r float32, a, b Vec3) bool {
+	r2 := r * r
+	//check a
+	if p.Sub(a).LenSqr() <= r2 {
+		return true
+	}
+	//check b
+	if p.Sub(b).LenSqr() <= r2 {
+		return true
+	}
+	//check parametric distance
+	ab := b.Sub(a)
+	t := p.Sub(a).Dot(ab.Normalize())
+	if t > 0 && t < 1 {
+		x := a.Add(ab.Mul(t))
+		if p.Sub(x).LenSqr() <= r2 {
+			return true
+		}
+	}
+	return false
+}
+func insideTriangleEdges(p Vec3, r float32, a, b, c Vec3) bool {
+	if sphereEdge(p, r, a, b) {
+		return true
+	}
+	if sphereEdge(p, r, b, c) {
+		return true
+	}
+	if sphereEdge(p, r, c, a) {
+		return true
+	}
+	return false
+}
+func pointInTriangle(p Vec3, a, b, c Vec3) bool {
+	axis1 := a.Sub(b)
+	axis2 := a.Sub(c)
+	p1 := axis1.Dot(p)
+	p2 := axis2.Dot(p)
+	if p1 < axis1.Dot(a) && p1 > axis1.Dot(b) && p2 < axis2.Dot(a) && p2 > axis2.Dot(c) {
+		return true
+	}
+	return false
+}
+
 //moves a bounding sphere against a series of walls
-def move_bsp3(transform, radius, velocity, wall_actors):
-    for wa in wall_actors:
-        pos = transform().position + velocity
-        ppos = wa.transform().position
-        #get vector from point to plane
-        dist = pos - ppos
-        #project it onto normal (assumed to be normalized already)
-        #this gives us a vector from the point perpendicular to the plane
-        #the length of which is the shortest possible distance
-        v = dot(dist, wa.normal) * wa.normal
-        if length(v) < radius:
-            #find the nearest point on the plane along that vector
-            pp = pos + v
-            #check if the point is actually within the bounds of the plane
-            a = wa.points[0]
-            b = wa.points[1]
-            c = wa.points[2]
-            d = wa.points[3]
-            axis1 = a-b
-            axis2 = a-d
-            p1 = dot(axis1, pp)
-            p2 = dot(axis2, pp)
-            if p1 < dot(axis1, a) and p1 > dot(axis1, b) and p2 < dot(axis2, a) and p2 > dot(axis2, d):
-                #if colliding with a wall, subtract velocity going in the wall's direction
-                #to prevent movement
-                adj = wa.normal * dot(velocity, wa.normal)
-                velocity -= adj
-    return velocity
-*/
+func MoveAgainstPlanes(t *transform.Transform, planes []Plane, radius float32, xspeed, yspeed, zspeed float32) (float32, float32, float32) {
+	velocity := Vec3{xspeed, yspeed, zspeed}
+	for _, p := range planes {
+		pos := t.GetPositionV().Add(velocity)
+		ppos := p.GetPositionV()
+		//get vector from point to plane
+		dist := pos.Sub(ppos)
+		//project it onto normal (assumed to be normalized already)
+		//this gives us a vector from the point perpendicular to the plane
+		//the length of which is the shortest possible distance
+		v := p.normal.Mul(dist.Dot(p.normal))
+		if v.LenSqr() <= radius*radius {
+			a := p.points[0]
+			b := p.points[1]
+			c := p.points[2]
+			//find the nearest point on the plane along that vector
+			//then check if the point is actually within the bounds of the triangle
+			if pointInTriangle(pos.Add(v), a, b, c) ||
+				insideTriangleVertices(pos, radius, a, b, c) ||
+				insideTriangleEdges(pos, radius, a, b, c) {
+				//if colliding with a wall, subtract velocity going in the wall's direction
+				//to prevent movement
+				adj := p.normal.Mul(velocity.Dot(p.normal)) //.Mul(2) //bouncy :3
+				velocity = velocity.Sub(adj)
+			}
+		}
+	}
+	return velocity.Elem()
+}

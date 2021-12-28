@@ -66,10 +66,29 @@ func (p *Player) Update() {
 	}
 	if CurrentLevel != nil {
 		//p.xspeed, p.yspeed = MoveAgainstLines(&p.Transform, CurrentLevel.Planes, p.xspeed, p.yspeed, pw/2-0.5)
-		p.xspeed, p.yspeed = MoveAgainstTiles(&p.Transform, CurrentLevel, p.xspeed, p.yspeed, pw-0.5, ph)
+
+		//p.xspeed, p.yspeed = MoveAgainstTiles(&p.Transform, CurrentLevel, p.xspeed, p.yspeed, pw-0.5, ph)
+
+		//p.xspeed, p.yspeed, _ = MoveAgainstPlanes(&p.Transform, CurrentLevel.Planes, pw/2-0.5, p.xspeed, p.yspeed, 0)
+		//p.Translate2D(p.xspeed, p.yspeed)
+
+		//apply collisions per-axis to avoid getting 'stuck' at 'seams'
+		xadj, yadj := float32(0), float32(0)
+		xadj, yadj, _ = MoveAgainstPlanes(&p.Transform, CurrentLevel.Planes, pw/2-0.5, p.xspeed, 0, 0)
+		p.xspeed = xadj
+		p.Translate2D(p.xspeed, yadj)
+		xadj, yadj, _ = MoveAgainstPlanes(&p.Transform, CurrentLevel.Planes, pw/2-0.5, 0, p.yspeed, 0)
+		if yadj != p.yspeed {
+			p.gravity = 0
+		} else {
+			p.gravity = 0.1
+		}
+		p.yspeed = yadj
+		p.Translate2D(xadj, p.yspeed)
 	}
 	if p.GetPositionV().Y()+8 > 400 {
 		p.Translate2D(0, 400-(p.GetPositionV().Y()+8))
+		p.yspeed = 0
 	}
 }
 func (p *Player) Destroy() {
