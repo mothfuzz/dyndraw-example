@@ -65,6 +65,10 @@ func (p *Player) Update() {
 		p.yspeed = 0
 	}
 	if CurrentLevel != nil {
+		//TODO: add raycasting
+		// 0 g on ground
+		// and also movement speed adjusted based on normal of current floor triangle
+
 		//p.xspeed, p.yspeed = MoveAgainstLines(&p.Transform, CurrentLevel.Planes, p.xspeed, p.yspeed, pw/2-0.5)
 
 		//p.xspeed, p.yspeed = MoveAgainstTiles(&p.Transform, CurrentLevel, p.xspeed, p.yspeed, pw-0.5, ph)
