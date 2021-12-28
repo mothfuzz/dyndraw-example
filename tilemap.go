@@ -22,7 +22,7 @@ type Line struct {
 
 //actually a triangle
 type Plane struct {
-	transform.Transform
+	origin Vec3
 	normal Vec3
 	points [3]Vec3
 }
@@ -32,8 +32,7 @@ func triNorm(a, b, c Vec3) Vec3 {
 	return b.Sub(a).Cross(c.Sub(a)).Normalize()
 }
 func NewPlane(x, y, z float32, a, b, c Vec3) Plane {
-	t := transform.Origin()
-	t.Translate(x, y, z)
+	t := Vec3{x, y, z}
 	n := triNorm(a, b, c)
 	return Plane{t, n, [3]Vec3{a, b, c}}
 }
@@ -330,9 +329,8 @@ func MoveAgainstPlanes(t *transform.Transform, planes []Plane, radius float32, x
 	velocity := Vec3{xspeed, yspeed, zspeed}
 	for _, p := range planes {
 		pos := t.GetPositionV().Add(velocity)
-		ppos := p.GetPositionV()
 		//get vector from point to plane
-		dist := pos.Sub(ppos)
+		dist := pos.Sub(p.origin)
 		//project it onto normal (assumed to be normalized already)
 		//this gives us a vector from the point perpendicular to the plane
 		//the length of which is the shortest possible distance
