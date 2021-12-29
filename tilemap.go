@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"math"
 
-	. "github.com/go-gl/mathgl/mgl32"
 	"github.com/mothfuzz/dyndraw/framework/render"
 	"github.com/mothfuzz/dyndraw/framework/transform"
+	. "github.com/mothfuzz/dyndraw/framework/vecmath"
 )
 
 type TileSet struct {
@@ -25,6 +25,10 @@ type Plane struct {
 	origin Vec3
 	normal Vec3
 	points [3]Vec3
+}
+
+func (p *Plane) Normal() Vec3 {
+	return p.normal
 }
 
 func triNorm(a, b, c Vec3) Vec3 {
@@ -246,9 +250,9 @@ func MoveAgainstTiles(t *transform.Transform, tm *TileMap, xspeed, yspeed float3
 	if CheckTile(t, tm, w, h, []uint8{3}) {
 		x, y := t.GetPositionV().Vec2().Elem()
 		if xspeed > 0 {
-			x = Round((pos.X()+w/2)/tw, 0)*tw - w/2
+			x = float32(math.Round(float64((pos.X()+w/2)/tw)))*tw - w/2
 		} else {
-			x = Round((pos.X()-w/2)/tw, 0)*tw + w/2
+			x = float32(math.Round(float64((pos.X()-w/2)/tw)))*tw + w/2
 		}
 		xspeed = 0
 		t.SetPosition2D(x, y)
@@ -257,9 +261,9 @@ func MoveAgainstTiles(t *transform.Transform, tm *TileMap, xspeed, yspeed float3
 	if CheckTile(t, tm, w, h, []uint8{3}) {
 		x, y := t.GetPositionV().Vec2().Elem()
 		if yspeed > 0 {
-			y = Round((pos.Y()+h/2)/th, 0)*th - h/2
+			y = float32(math.Round(float64((pos.Y()+h/2)/th)))*th - h/2
 		} else {
-			y = Round((pos.Y()-h/2)/th, 0)*th + h/2
+			y = float32(math.Round(float64((pos.Y()-h/2)/th)))*th + h/2
 		}
 		yspeed = 0
 		t.SetPosition2D(x, y)
@@ -313,7 +317,7 @@ func insideTriangleEdges(p Vec3, r float32, a, b, c Vec3) bool {
 	}
 	return false
 }
-func pointInTriangle(p Vec3, a, b, c Vec3) bool {
+func coPointInTriangle(p Vec3, a, b, c Vec3) bool {
 	axis1 := a.Sub(b)
 	axis2 := a.Sub(c)
 	p1 := axis1.Dot(p)
@@ -322,6 +326,18 @@ func pointInTriangle(p Vec3, a, b, c Vec3) bool {
 		return true
 	}
 	return false
+}
+
+func pointInTriangle(p Vec3, a, b, c Vec3) bool {
+	//check if 3 points are coplanar first
+	ab := b.Sub(a)
+	ac := c.Sub(a)
+	ap := p.Sub(a)
+	if ap.Dot(ab.Cross(ac)) == 0 {
+		return coPointInTriangle(p, a, b, c)
+	} else {
+		return false
+	}
 }
 
 //moves a bounding sphere against a series of walls
@@ -341,7 +357,7 @@ func MoveAgainstPlanes(t *transform.Transform, planes []Plane, radius float32, x
 			c := p.points[2]
 			//find the nearest point on the plane along that vector
 			//then check if the point is actually within the bounds of the triangle
-			if pointInTriangle(pos.Add(v), a, b, c) ||
+			if coPointInTriangle(pos.Add(v), a, b, c) ||
 				insideTriangleVertices(pos, radius, a, b, c) ||
 				insideTriangleEdges(pos, radius, a, b, c) {
 				//if colliding with a wall, subtract velocity going in the wall's direction
@@ -352,4 +368,36 @@ func MoveAgainstPlanes(t *transform.Transform, planes []Plane, radius float32, x
 		}
 	}
 	return velocity.Elem()
+}
+
+type RayHit struct {
+	Plane
+	I Vec3
+}
+
+func RayCast(pos Vec3, planes []Plane, ray Vec3) []RayHit {
+	hits := []RayHit{}
+	for _, p := range planes {
+		rdot1 := ray.Dot(p.normal)
+		rdot2 := p.origin.Sub(pos).Dot(p.normal)
+		t := rdot2 / rdot1
+		i := pos.Add(ray.Mul(t))
+		if pointInTriangle(i, p.points[0], p.points[1], p.points[2]) {
+			hits = append(hits, RayHit{p, i})
+		}
+	}
+	return hits
+}
+func RayCastLen(pos Vec3, planes []Plane, ray Vec3, l float32) (RayHit, bool) {
+	ll := l * l
+	shortest := ll
+	ok, hit := false, RayHit{}
+	for _, p := range RayCast(pos, planes, ray) {
+		dist := p.I.Sub(pos).LenSqr()
+		if dist <= shortest {
+			ok = true
+			hit = p
+		}
+	}
+	return hit, ok
 }

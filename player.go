@@ -7,14 +7,19 @@ import (
 	"github.com/mothfuzz/dyndraw/framework/input"
 	"github.com/mothfuzz/dyndraw/framework/render"
 	"github.com/mothfuzz/dyndraw/framework/transform"
+	. "github.com/mothfuzz/dyndraw/framework/vecmath"
 )
 
 type Player struct {
 	transform.Transform
-	hp      int8
-	xspeed  float32
-	yspeed  float32
-	gravity float32
+	hp               int8
+	xspeed           float32
+	xspeedMax        float32
+	xfriction        float32
+	yspeed           float32
+	gravity          float32
+	grounded         bool
+	groundMultiplier float32
 }
 
 var CurrentLevel *TileMap = nil
@@ -24,9 +29,13 @@ const ph = 16
 
 func (p *Player) Init() {
 	p.Transform = transform.Origin2D(pw, ph)
-	p.Transform.SetPosition(640/2, 0, 0)
+	p.Transform.SetPosition(640/2, 0, -0.1)
 	p.hp = 10
 	p.gravity = 0.1
+	p.grounded = false
+	p.groundMultiplier = 1
+	p.xspeedMax = 8
+	p.xfriction = 0.8
 }
 func (p *Player) Update() {
 
@@ -38,26 +47,23 @@ func (p *Player) Update() {
 		p.xspeed += 0.25
 		p.SetScale2D(pw, ph)
 	}
-	if input.IsKeyPressed("up") {
+	if input.IsKeyPressed("up") && p.grounded {
+		p.grounded = false
 		p.yspeed = -4
 	}
-	p.yspeed += p.gravity
+	//if either in the air or on a flat surface, apply gravity
+	if !p.grounded || p.groundMultiplier == 1 {
+		p.yspeed += p.gravity
+	}
+	p.xspeed *= p.xfriction
+	p.xspeed *= p.groundMultiplier
 
-	/*if input.IsKeyDown("left") {
-		p.xspeed = -1
+	if p.xspeed < -p.xspeedMax {
+		p.xspeed = -p.xspeedMax
 	}
-	if input.IsKeyDown("right") {
-		p.xspeed = 1
+	if p.xspeed > p.xspeedMax {
+		p.xspeed = p.xspeedMax
 	}
-	if input.IsKeyDown("up") {
-		p.yspeed = -1
-	}
-	if input.IsKeyDown("down") {
-		p.yspeed = 1
-	}*/
-
-	p.xspeed *= 0.8
-	//p.yspeed *= 0.8
 	if math.Abs(float64(p.xspeed)) < 0.1 {
 		p.xspeed = 0
 	}
@@ -65,16 +71,6 @@ func (p *Player) Update() {
 		p.yspeed = 0
 	}
 	if CurrentLevel != nil {
-		//TODO: add raycasting
-		// 0 g on ground
-		// and also movement speed adjusted based on normal of current floor triangle
-
-		//p.xspeed, p.yspeed = MoveAgainstLines(&p.Transform, CurrentLevel.Planes, p.xspeed, p.yspeed, pw/2-0.5)
-
-		//p.xspeed, p.yspeed = MoveAgainstTiles(&p.Transform, CurrentLevel, p.xspeed, p.yspeed, pw-0.5, ph)
-
-		//p.xspeed, p.yspeed, _ = MoveAgainstPlanes(&p.Transform, CurrentLevel.Planes, pw/2-0.5, p.xspeed, p.yspeed, 0)
-		//p.Translate2D(p.xspeed, p.yspeed)
 
 		//apply collisions per-axis to avoid getting 'stuck' at 'seams'
 		xadj, yadj := float32(0), float32(0)
@@ -82,16 +78,32 @@ func (p *Player) Update() {
 		p.xspeed = xadj
 		p.Translate2D(p.xspeed, yadj)
 		xadj, yadj, _ = MoveAgainstPlanes(&p.Transform, CurrentLevel.Planes, pw/2-0.5, 0, p.yspeed, 0)
-		if yadj != p.yspeed {
-			p.gravity = 0
-		} else {
-			p.gravity = 0.1
-		}
 		p.yspeed = yadj
 		p.Translate2D(xadj, p.yspeed)
+
+		//keep your feet on the ground
+		feet := p.GetPositionV().Add(Vec3{0, ph / 2, 0})
+		direction := float32(0)
+		if p.xspeed > 0 {
+			direction = 1
+		}
+		if p.xspeed < 0 {
+			direction = -1
+		}
+		if hit, ok := RayCastLen(feet.Add(Vec3{pw / 4 * direction, 0, 0}), CurrentLevel.Planes, Vec3{0, 1, 0}, 4); ok {
+			p.grounded = true
+			dot := hit.Plane.Normal().Dot(Vec3{0, 1, 0})
+			p.groundMultiplier = 1.0 / (dot * dot)
+			//p.SetPosition2D(p.X(), hit.I.Y()-ph/2) //too forceful, messes with velocity
+		} else {
+			p.grounded = false
+			p.groundMultiplier = 1
+		}
+
 	}
-	if p.GetPositionV().Y()+8 > 400 {
-		p.Translate2D(0, 400-(p.GetPositionV().Y()+8))
+	if p.Y()+8 > 400 {
+		p.Translate2D(0, 400-(p.Y()+8))
+		p.grounded = true
 		p.yspeed = 0
 	}
 }
