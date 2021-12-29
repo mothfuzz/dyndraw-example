@@ -363,7 +363,14 @@ func MoveAgainstPlanes(t *transform.Transform, planes []Plane, radius float32, x
 				//if colliding with a wall, subtract velocity going in the wall's direction
 				//to prevent movement
 				adj := p.normal.Mul(velocity.Dot(p.normal)) //.Mul(2) //bouncy :3
+				preserve := velocity.LenSqr()
 				velocity = velocity.Sub(adj)
+				mag := velocity.LenSqr()
+				//attempt to preserve momentum against slopes etc.
+				//not physically accurate but it's more fun.
+				if mag > 0 {
+					velocity = velocity.Mul(preserve / mag / 1.0)
+				}
 			}
 		}
 	}

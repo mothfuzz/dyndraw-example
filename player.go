@@ -15,6 +15,7 @@ type Player struct {
 	hp               int8
 	xspeed           float32
 	xspeedMax        float32
+	yspeedMax        float32
 	xfriction        float32
 	yspeed           float32
 	gravity          float32
@@ -35,6 +36,7 @@ func (p *Player) Init() {
 	p.grounded = false
 	p.groundMultiplier = 1
 	p.xspeedMax = 8
+	p.yspeedMax = 6
 	p.xfriction = 0.8
 }
 func (p *Player) Update() {
@@ -51,18 +53,25 @@ func (p *Player) Update() {
 		p.grounded = false
 		p.yspeed = -4
 	}
-	//if either in the air or on a flat surface, apply gravity
+
+	//if in the air, or a flat surface, apply gravity
 	if !p.grounded || p.groundMultiplier == 1 {
 		p.yspeed += p.gravity
 	}
 	p.xspeed *= p.xfriction
-	p.xspeed *= p.groundMultiplier
+	//p.xspeed *= p.groundMultiplier
 
 	if p.xspeed < -p.xspeedMax {
 		p.xspeed = -p.xspeedMax
 	}
 	if p.xspeed > p.xspeedMax {
 		p.xspeed = p.xspeedMax
+	}
+	if p.yspeed < -p.yspeedMax {
+		p.yspeed = -p.yspeedMax
+	}
+	if p.yspeed > p.yspeedMax {
+		p.yspeed = p.yspeedMax
 	}
 	if math.Abs(float64(p.xspeed)) < 0.1 {
 		p.xspeed = 0
@@ -83,23 +92,18 @@ func (p *Player) Update() {
 
 		//keep your feet on the ground
 		feet := p.GetPositionV().Add(Vec3{0, ph / 2, 0})
-		direction := float32(0)
-		if p.xspeed > 0 {
-			direction = 1
-		}
-		if p.xspeed < 0 {
-			direction = -1
-		}
-		if hit, ok := RayCastLen(feet.Add(Vec3{pw / 4 * direction, 0, 0}), CurrentLevel.Planes, Vec3{0, 1, 0}, 4); ok {
-			p.grounded = true
-			dot := hit.Plane.Normal().Dot(Vec3{0, 1, 0})
+		if hit, ok := RayCastLen(feet, CurrentLevel.Planes, Vec3{0, 1, 0}, 7); ok {
+			dot := hit.Normal().Dot(Vec3{0, 1, 0})
 			p.groundMultiplier = 1.0 / (dot * dot)
-			//p.SetPosition2D(p.X(), hit.I.Y()-ph/2) //too forceful, messes with velocity
+			//p.SetPosition2D(p.X(), hit.I.Y()-ph/2) //too aggressive
+			if p.grounded && p.groundMultiplier != 1 {
+				p.yspeed = 0
+			}
+			p.grounded = true
 		} else {
-			p.grounded = false
 			p.groundMultiplier = 1
+			p.grounded = false
 		}
-
 	}
 	if p.Y()+8 > 400 {
 		p.Translate2D(0, 400-(p.Y()+8))
