@@ -389,10 +389,12 @@ func RayCast(pos Vec3, planes []Plane, ray Vec3) []RayHit {
 		rdot2 := p.origin.Sub(pos).Dot(p.normal)
 		t := rdot2 / rdot1
 		i := pos.Add(ray.Mul(t))
-		if pointInTriangle(i, p.points[0], p.points[1], p.points[2]) {
+		if t >= 0 && //t <= 1 && //t > 1 if plane exceeds distance
+			pointInTriangle(i, p.points[0], p.points[1], p.points[2]) {
 			hits = append(hits, RayHit{p, i})
 		}
 	}
+	//fmt.Println("len(hits)", len(hits))
 	return hits
 }
 func RayCastLen(pos Vec3, planes []Plane, ray Vec3, l float32) (RayHit, bool) {
@@ -402,6 +404,7 @@ func RayCastLen(pos Vec3, planes []Plane, ray Vec3, l float32) (RayHit, bool) {
 	for _, p := range RayCast(pos, planes, ray) {
 		dist := p.I.Sub(pos).LenSqr()
 		if dist <= shortest {
+			shortest = dist
 			ok = true
 			hit = p
 		}

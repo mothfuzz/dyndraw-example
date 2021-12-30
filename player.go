@@ -10,9 +10,22 @@ import (
 	. "github.com/mothfuzz/dyndraw/framework/vecmath"
 )
 
+type PlayerState int
+
+const (
+	ground PlayerState = iota
+	jumping
+	falling
+)
+
+func (ps PlayerState) String() string {
+	return []string{"Ground", "Jumping", "Falling"}[ps]
+}
+
 type Player struct {
 	transform.Transform
 	hp               int8
+	state            PlayerState
 	xspeed           float32
 	xspeedMax        float32
 	yspeedMax        float32
@@ -30,17 +43,16 @@ const ph = 16
 
 func (p *Player) Init() {
 	p.Transform = transform.Origin2D(pw, ph)
-	p.Transform.SetPosition(640/2, 0, -0.1)
+	p.Transform.SetPosition(640/2, 0, 0)
+	p.state = ground
 	p.hp = 10
 	p.gravity = 0.1
-	p.grounded = false
-	p.groundMultiplier = 1
 	p.xspeedMax = 8
 	p.yspeedMax = 6
 	p.xfriction = 0.8
 }
-func (p *Player) Update() {
 
+func (p *Player) ProcessInput() {
 	if input.IsKeyDown("left") {
 		p.xspeed -= 0.25
 		p.SetScale2D(-pw, ph)
@@ -49,66 +61,101 @@ func (p *Player) Update() {
 		p.xspeed += 0.25
 		p.SetScale2D(pw, ph)
 	}
-	if input.IsKeyPressed("up") && p.grounded {
-		p.grounded = false
+	if input.IsKeyPressed("up") && p.state == ground {
+		p.state = jumping
 		p.yspeed = -4
 	}
+}
 
-	//if in the air, or a flat surface, apply gravity
-	if !p.grounded || p.groundMultiplier == 1 {
-		p.yspeed += p.gravity
-	}
+func (p *Player) MoveX() {
 	p.xspeed *= p.xfriction
-	//p.xspeed *= p.groundMultiplier
-
 	if p.xspeed < -p.xspeedMax {
 		p.xspeed = -p.xspeedMax
 	}
 	if p.xspeed > p.xspeedMax {
 		p.xspeed = p.xspeedMax
 	}
+	if math.Abs(float64(p.xspeed)) < 0.1 {
+		p.xspeed = 0
+	}
+
+	//initial movement, avoiding walls
+	xadj, yadj, _ := MoveAgainstPlanes(&p.Transform, CurrentLevel.Planes, pw/2-0.5, p.xspeed, 0, 0)
+	p.xspeed = xadj
+	p.Translate2D(p.xspeed, yadj)
+}
+
+func (p *Player) MoveY() {
+
+	//fmt.Println(p.state)
+	//fmt.Println(p.xspeed)
+	//fmt.Println(p.yspeed)
+
+	//if in the air, apply gravity
+	if p.state == jumping || p.state == falling {
+		p.yspeed += p.gravity
+		if p.yspeed > 0 {
+			p.state = falling
+		}
+	}
+	//min/max velocity
 	if p.yspeed < -p.yspeedMax {
 		p.yspeed = -p.yspeedMax
 	}
 	if p.yspeed > p.yspeedMax {
 		p.yspeed = p.yspeedMax
 	}
-	if math.Abs(float64(p.xspeed)) < 0.1 {
-		p.xspeed = 0
-	}
 	if math.Abs(float64(p.yspeed)) < 0.1 {
 		p.yspeed = 0
 	}
-	if CurrentLevel != nil {
 
-		//apply collisions per-axis to avoid getting 'stuck' at 'seams'
-		xadj, yadj := float32(0), float32(0)
-		xadj, yadj, _ = MoveAgainstPlanes(&p.Transform, CurrentLevel.Planes, pw/2-0.5, p.xspeed, 0, 0)
-		p.xspeed = xadj
-		p.Translate2D(p.xspeed, yadj)
-		xadj, yadj, _ = MoveAgainstPlanes(&p.Transform, CurrentLevel.Planes, pw/2-0.5, 0, p.yspeed, 0)
-		p.yspeed = yadj
-		p.Translate2D(xadj, p.yspeed)
-
-		//keep your feet on the ground
-		feet := p.GetPositionV().Add(Vec3{0, ph / 2, 0})
-		if hit, ok := RayCastLen(feet, CurrentLevel.Planes, Vec3{0, 1, 0}, 7); ok {
-			dot := hit.Normal().Dot(Vec3{0, 1, 0})
-			p.groundMultiplier = 1.0 / (dot * dot)
-			//p.SetPosition2D(p.X(), hit.I.Y()-ph/2) //too aggressive
-			if p.grounded && p.groundMultiplier != 1 {
-				p.yspeed = 0
-			}
-			p.grounded = true
-		} else {
-			p.groundMultiplier = 1
-			p.grounded = false
+	//keep your feet on the ground
+	feet := p.GetPositionV() //.Add(Vec3{0, ph / 2, 0})
+	leftFoot := feet.Add(Vec3{-pw / 3, 0, 0})
+	rightFoot := feet.Add(Vec3{pw / 3, 0, 0})
+	leftHit, leftOk := RayCastLen(leftFoot, CurrentLevel.Planes, Vec3{0, 1, 0}, ph)
+	rightHit, rightOk := RayCastLen(rightFoot, CurrentLevel.Planes, Vec3{0, 1, 0}, ph)
+	if p.state == ground {
+		highestY := p.Y()
+		if leftOk && rightOk {
+			highestY = float32(math.Min(float64(leftHit.I.Y()), float64(rightHit.I.Y()))) - ph/2
+		}
+		if leftOk && !rightOk {
+			highestY = leftHit.I.Y() - ph/2
+		}
+		if rightOk && !leftOk {
+			highestY = rightHit.I.Y() - ph/2
+		}
+		if p.Y()+ph/2 >= highestY {
+			p.SetPosition2D(p.X(), highestY)
 		}
 	}
-	if p.Y()+8 > 400 {
-		p.Translate2D(0, 400-(p.Y()+8))
-		p.grounded = true
+	if (leftOk || rightOk) && p.state != jumping {
 		p.yspeed = 0
+		p.state = ground
+	} else {
+		if p.state == ground {
+			p.state = falling
+		}
+	}
+
+	//avoid planes
+	xadj, yadj, _ := MoveAgainstPlanes(&p.Transform, CurrentLevel.Planes, pw/2-0.5, 0, p.yspeed, 0)
+	p.yspeed = yadj
+	p.Translate2D(xadj, p.yspeed)
+}
+
+func (p *Player) Update() {
+
+	p.ProcessInput()
+	//apply collisions per-axis to avoid getting 'stuck' at 'seams'
+	p.MoveX()
+	p.MoveY()
+
+	if p.Y()+ph/2 >= 400 {
+		p.Translate2D(0, 400-(p.Y()+ph/2))
+		p.yspeed = 0
+		p.state = ground
 	}
 }
 func (p *Player) Destroy() {
