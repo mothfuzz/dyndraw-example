@@ -160,19 +160,26 @@ func (t *TileMap) Draw() {
 			}
 		}
 	}
-}
-
-func distance(a Vec2, b Vec2) float32 {
-	//return b.Sub(a).Len()
-	return float32(math.Sqrt(
-		math.Pow(float64(b.X()-a.X()), 2) +
-			math.Pow(float64(b.Y()-a.Y()), 2)))
+	/*for _, p := range t.Planes {
+		t := transform.Origin2D(4, 4)
+		t.SetPosition(p.origin.X(), p.origin.Y(), p.origin.Z())
+		render.DrawSprite("pointg.png", t.Mat4())
+		t.SetPosition(p.points[0].X(), p.points[0].Y(), p.points[0].Z())
+		render.DrawSprite("point.png", t.Mat4())
+		t.SetPosition(p.points[1].X(), p.points[1].Y(), p.points[1].Z())
+		render.DrawSprite("point.png", t.Mat4())
+		t.SetPosition(p.points[2].X(), p.points[2].Y(), p.points[2].Z())
+		render.DrawSprite("point.png", t.Mat4())
+		out := p.origin.Add(p.normal.Mul(8))
+		t.SetPosition(out.X(), out.Y(), out.Z())
+		render.DrawSprite("pointg.png", t.Mat4())
+	}*/
 }
 
 //distance from a point p to a line
 func lineDistance(p Vec2, l Line) float32 {
 	t := (l.b.X()-l.a.X())*(l.a.Y()-p.Y()) - (l.a.X()-p.X())*(l.b.Y()-l.a.Y())
-	return float32(math.Abs(float64(t))) / distance(l.a, l.b)
+	return float32(math.Abs(float64(t))) / l.b.Sub(l.a).Len()
 }
 
 func perpendicular(a Vec2) Vec2 {
@@ -287,13 +294,13 @@ func insideTriangleVertices(p Vec3, r float32, a, b, c Vec3) bool {
 func sphereEdge(p Vec3, r float32, a, b Vec3) bool {
 	r2 := r * r
 	//check a
-	if p.Sub(a).LenSqr() <= r2 {
+	/*if p.Sub(a).LenSqr() <= r2 {
 		return true
 	}
 	//check b
 	if p.Sub(b).LenSqr() <= r2 {
 		return true
-	}
+	}*/
 	//check parametric distance
 	ab := b.Sub(a)
 	t := p.Sub(a).Dot(ab.Normalize())
@@ -317,24 +324,26 @@ func insideTriangleEdges(p Vec3, r float32, a, b, c Vec3) bool {
 	}
 	return false
 }
-func coPointInTriangle(p Vec3, a, b, c Vec3) bool {
-	axis1 := a.Sub(b)
-	axis2 := a.Sub(c)
-	p1 := axis1.Dot(p)
-	p2 := axis2.Dot(p)
-	if p1 < axis1.Dot(a) && p1 > axis1.Dot(b) && p2 < axis2.Dot(a) && p2 > axis2.Dot(c) {
-		return true
-	}
-	return false
-}
-
 func pointInTriangle(p Vec3, a, b, c Vec3) bool {
-	//check if 3 points are coplanar first
 	ab := b.Sub(a)
 	ac := c.Sub(a)
 	ap := p.Sub(a)
-	if ap.Dot(ab.Cross(ac)) == 0 {
-		return coPointInTriangle(p, a, b, c)
+	abac := ab.Cross(ac)
+	//check if 3 points are coplanar first
+	if ap.Dot(abac) == 0 {
+		//compute barycentric coords
+		//u = ||CAxCP|| / ||ABxAC||
+		//v = ||ABxAP|| / ||ABxAC||
+		//w = ||BCxBP|| / ||ABxAC||
+		abacl := abac.LenSqr()
+		u := c.Sub(a).Cross(c.Sub(p)).LenSqr() / abacl
+		v := a.Sub(b).Cross(a.Sub(p)).LenSqr() / abacl
+		w := b.Sub(c).Cross(b.Sub(p)).LenSqr() / abacl
+		if u >= 0 && u <= 1 && v >= 0 && v <= 1 && w >= 0 && w <= 1 {
+			return true
+		} else {
+			return false
+		}
 	} else {
 		return false
 	}
@@ -357,7 +366,7 @@ func MoveAgainstPlanes(t *transform.Transform, planes []Plane, radius float32, x
 			c := p.points[2]
 			//find the nearest point on the plane along that vector
 			//then check if the point is actually within the bounds of the triangle
-			if coPointInTriangle(pos.Add(v), a, b, c) ||
+			if pointInTriangle(pos.Add(v), a, b, c) ||
 				insideTriangleVertices(pos, radius, a, b, c) ||
 				insideTriangleEdges(pos, radius, a, b, c) {
 				//if colliding with a wall, subtract velocity going in the wall's direction
