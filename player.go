@@ -90,6 +90,7 @@ func (p *Player) MoveY() {
 	//fmt.Println(p.state)
 	//fmt.Println(p.xspeed)
 	//fmt.Println(p.yspeed)
+	//fmt.Printf("%2.2f\t%2.2f\t%2.2f\t%2.2f\t%2.2f\t%v\n", p.X(), p.Y(), p.Z(), p.xspeed, p.yspeed, p.state)
 
 	//if in the air, apply gravity
 	if p.state == jumping || p.state == falling {
@@ -111,8 +112,8 @@ func (p *Player) MoveY() {
 
 	//keep your feet on the ground
 	feet := p.GetPositionV() //.Add(Vec3{0, ph / 2, 0})
-	leftFoot := feet.Add(Vec3{-pw / 3, 0, 0})
-	rightFoot := feet.Add(Vec3{pw / 3, 0, 0})
+	leftFoot := feet.Add(Vec3{-pw / 3.0, 0, 0})
+	rightFoot := feet.Add(Vec3{pw / 3.0, 0, 0})
 	leftHit, leftOk := RayCastLen(leftFoot, CurrentLevel.Planes, Vec3{0, 1, 0}, ph)
 	rightHit, rightOk := RayCastLen(rightFoot, CurrentLevel.Planes, Vec3{0, 1, 0}, ph)
 	if p.state == ground {
@@ -151,6 +152,12 @@ func (p *Player) Update() {
 	//apply collisions per-axis to avoid getting 'stuck' at 'seams'
 	p.MoveX()
 	p.MoveY()
+	//fmt.Println(p.state)
+	//fmt.Println(p.xspeed)
+	//fmt.Println(p.yspeed)
+
+	//mx, my := input.GetMousePosition()
+	//render.ActiveCamera.Look2D(Vec2{p.X(), p.Y()})
 
 	if p.Y()+ph/2 >= 400 {
 		p.Translate2D(0, 400-(p.Y()+ph/2))

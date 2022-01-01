@@ -330,7 +330,8 @@ func pointInTriangle(p Vec3, a, b, c Vec3) bool {
 	ap := p.Sub(a)
 	abac := ab.Cross(ac)
 	//check if 3 points are coplanar first
-	if ap.Dot(abac) == 0 {
+	//the floating point errors are strong with this one...
+	if math.Abs(float64(ap.Dot(abac))) <= 1e-2 {
 		//compute barycentric coords
 		//u = ||CAxCP|| / ||ABxAC||
 		//v = ||ABxAP|| / ||ABxAC||
