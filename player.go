@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"math"
 
+	"github.com/mothfuzz/dyndraw/framework/actors"
 	"github.com/mothfuzz/dyndraw/framework/input"
 	"github.com/mothfuzz/dyndraw/framework/render"
 	"github.com/mothfuzz/dyndraw/framework/transform"
@@ -34,6 +35,11 @@ type Player struct {
 	gravity          float32
 	grounded         bool
 	groundMultiplier float32
+
+	Collider
+
+	items      []Item
+	itemPickup actors.Channel
 }
 
 var CurrentLevel *TileMap = nil
@@ -50,6 +56,9 @@ func (p *Player) Init() {
 	p.xspeedMax = 8
 	p.yspeedMax = 6
 	p.xfriction = 0.8
+
+	p.items = []Item{}
+	p.itemPickup = actors.Listen(p, Item{})
 }
 
 func (p *Player) ProcessInput() {
@@ -156,13 +165,27 @@ func (p *Player) Update() {
 	//fmt.Println(p.xspeed)
 	//fmt.Println(p.yspeed)
 
-	//mx, my := input.GetMousePosition()
-	//render.ActiveCamera.Look2D(Vec2{p.X(), p.Y()})
+	if input.IsKeyDown("left ctrl") {
+		mx, my := input.GetMousePosition()
+		render.ActiveCamera.Look2D(Vec2{p.X() + float32(mx) - 640/2, p.Y() + float32(my) - 400/2})
+	} else {
+		render.ActiveCamera.Look2D(Vec2{p.X(), p.Y()})
+	}
 
 	if p.Y()+ph/2 >= 400 {
 		p.Translate2D(0, 400-(p.Y()+ph/2))
 		p.yspeed = 0
 		p.state = ground
+	}
+	for {
+		select {
+		case item := <-p.itemPickup:
+			i := item.(Item)
+			fmt.Printf("Got a %s! \"%s\"\n", i.Name, i.Description)
+			p.items = append(p.items, i)
+		default:
+			return
+		}
 	}
 }
 func (p *Player) Destroy() {
