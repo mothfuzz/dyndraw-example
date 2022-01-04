@@ -43,6 +43,8 @@ func main() {
 
 	app.SetWindowSize(640, 400)
 
+	LoadItemDictionary()
+
 	t := &TileMap{
 		TileSet: TileSet{"tileset.png", 4, 4, 16, 16},
 		Data: [][]uint8{
@@ -62,9 +64,12 @@ func main() {
 	actors.Spawn(t)
 	actors.Spawn(&Player{})
 	actors.Spawn(&RayTest{})
-	i := &Item{Name: "Thingy", Description: "hello there", Icon: "bnw.png"}
-	actors.Spawn(i)
-	i.SetPosition2D(640/2+32, 400/2)
+	//i := &Item{Name: "Thingy", Description: "hello there", Icon: "bnw.png"}
+	//actors.Spawn(i)
+	//i.SetPosition2D(640/2+32, 400/2)
+
+	actors.SpawnAt(ItemDictionary("thingy.xml"), transform.Location2D(640/2+16, 480/2, 16, 16))
+	actors.SpawnAt(ItemDictionary("otherthingy.json"), transform.Location2D(640/2+32, 480/2, 16, 16))
 
 	for app.PollEvents() {
 		app.Update()

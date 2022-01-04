@@ -58,7 +58,7 @@ func (p *Player) Init() {
 	p.xfriction = 0.8
 
 	p.items = []Item{}
-	p.itemPickup = actors.Listen(p, Item{})
+	p.itemPickup = actors.Listen(p, Item{}) //listen for items
 }
 
 func (p *Player) ProcessInput() {
