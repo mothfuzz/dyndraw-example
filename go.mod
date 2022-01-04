@@ -4,7 +4,7 @@ go 1.17
 
 require (
 	github.com/go-gl/mathgl v1.0.0
-	github.com/mothfuzz/dyndraw v0.0.0-20211228191219-30965ca6cc19
+	github.com/mothfuzz/dyndraw v0.0.0-20220103085732-d2996c88bf6f
 )
 
 require (

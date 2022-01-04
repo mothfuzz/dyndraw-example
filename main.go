@@ -62,6 +62,9 @@ func main() {
 	actors.Spawn(t)
 	actors.Spawn(&Player{})
 	actors.Spawn(&RayTest{})
+	i := &Item{Name: "Thingy", Description: "hello there", Icon: "bnw.png"}
+	actors.Spawn(i)
+	i.SetPosition2D(640/2+32, 400/2)
 
 	for app.PollEvents() {
 		app.Update()
