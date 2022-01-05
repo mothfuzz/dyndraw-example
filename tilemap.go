@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"math"
 
 	"github.com/mothfuzz/dyndraw/framework/render"
@@ -16,7 +15,7 @@ type TileSet struct {
 }
 
 //-
-func newXPlane(x, y, l float32) Plane {
+func NewXPlane(x, y, l float32) Plane {
 	a := Vec3{x, y, -l}
 	b := Vec3{x + l/2, y, 0}
 	c := Vec3{x - l/2, y, 0}
@@ -24,7 +23,7 @@ func newXPlane(x, y, l float32) Plane {
 }
 
 //|
-func newYPlane(x, y, l float32) Plane {
+func NewYPlane(x, y, l float32) Plane {
 	a := Vec3{x, y, -l}
 	b := Vec3{x, y - l/2, 0}
 	c := Vec3{x, y + l/2, 0}
@@ -33,10 +32,10 @@ func newYPlane(x, y, l float32) Plane {
 
 type TileMap struct {
 	TileSet
-	Data   [][]uint8
-	Planes []Plane
-	transform.Transform
+	Data [][]uint8
+	Collider
 	render.SpriteAnimation
+	tileTransform transform.Transform
 }
 
 func tileOccupied(t *TileMap, x, y int, mask []uint8) bool {
@@ -67,7 +66,7 @@ func (t *TileMap) offsets() (float32, float32) {
 }
 
 func (t *TileMap) Init() {
-	t.Transform = transform.Origin2D(t.TileSet.TW, t.TileSet.TH)
+	t.tileTransform = transform.Origin2D(t.TileSet.TW, t.TileSet.TH)
 	t.SpriteAnimation = render.SpriteAnimation{
 		Frames: [][]float32{},
 		Tags:   map[string][]int{"tiles": {}},
@@ -82,7 +81,6 @@ func (t *TileMap) Init() {
 				float32(t.TileSet.TW) / totalWidth,
 				float32(t.TileSet.TH) / totalHeight,
 			})
-			fmt.Println(t.SpriteAnimation.Frames[len(t.SpriteAnimation.Frames)-1])
 			t.SpriteAnimation.Tags["tiles"] = append(t.SpriteAnimation.Tags["tiles"], i*t.TileSet.W+j)
 		}
 	}
@@ -101,16 +99,16 @@ func (t *TileMap) Init() {
 					t.Planes = append(t.Planes, NewPlane(x, y, 0, Vec3{x, y, -w}, Vec3{x + w/2, y + h/2, 0}, Vec3{x - w/2, y - h/2, 0}))
 				case 3:
 					if !tileOccupied(t, j, i-1, []uint8{1, 2, 3}) {
-						t.Planes = append(t.Planes, newXPlane(x, y-h/2, h))
+						t.Planes = append(t.Planes, NewXPlane(x, y-h/2, h))
 					}
 					if !tileOccupied(t, j, i+1, []uint8{1, 2, 3}) {
-						t.Planes = append(t.Planes, newXPlane(x, y+h/2, h))
+						t.Planes = append(t.Planes, NewXPlane(x, y+h/2, h))
 					}
 					if !tileOccupied(t, j-1, i, []uint8{1, 3}) {
-						t.Planes = append(t.Planes, newYPlane(x-w/2, y, w))
+						t.Planes = append(t.Planes, NewYPlane(x-w/2, y, w))
 					}
 					if !tileOccupied(t, j+1, i, []uint8{2, 3}) {
-						t.Planes = append(t.Planes, newYPlane(x+w/2, y, w))
+						t.Planes = append(t.Planes, NewYPlane(x+w/2, y, w))
 					}
 				}
 			}
@@ -126,11 +124,11 @@ func (t *TileMap) Draw() {
 	for i, row := range t.Data {
 		for j, tile := range row {
 			if tile != 0 {
-				t.Transform.SetPosition2D(
+				t.tileTransform.SetPosition2D(
 					float32(j*t.TileSet.TW)+xOffset,
 					float32(i*t.TileSet.TH)+yOffset,
 				)
-				render.DrawSpriteAnimated(t.TileSet.Image, t.Transform.Mat4(), t.SpriteAnimation.GetTexCoords("tiles", int(tile)))
+				render.DrawSpriteAnimated(t.TileSet.Image, t.tileTransform.Mat4(), t.SpriteAnimation.GetTexCoords("tiles", int(tile)))
 			}
 		}
 	}

@@ -21,15 +21,19 @@ func (r *RayTest) Update()  {}
 func (r *RayTest) Destroy() {}
 func (r *RayTest) Draw() {
 	mx, my := input.GetMousePosition()
+	startPoint := Vec3{640.0 / 2, 400.0 / 2, 0}
+	endPoint := render.RelativeToCamera(mx, my)
+
 	t := transform.Origin2D(4, 4)
 	t.SetPosition(640/2, 400/2, -1)
 	render.DrawSprite("pointg.png", t.Mat4())
-	ray := Vec3{float32(mx), float32(my), 0}.Sub(Vec3{640 / 2, 400.0 / 2, 0}).Normalize()
-	for _, p := range (RayCast(Vec3{640 / 2, 400 / 2, 0}, CurrentLevel.Planes, ray)) {
+
+	ray := endPoint.Sub(startPoint).Normalize()
+	for _, p := range RayCast(startPoint, ray) {
 		t.SetPosition(p.I.X(), p.I.Y(), -1)
 		render.DrawSprite("point.png", t.Mat4())
 	}
-	if hit, ok := RayCastLen(Vec3{640 / 2, 400 / 2, 0}, CurrentLevel.Planes, ray, 640/2); ok {
+	if hit, ok := RayCastLen(startPoint, ray, 640/2); ok {
 		t := transform.Origin2D(4, 4)
 		t.SetPosition(hit.I.X(), hit.I.Y(), -2)
 		render.DrawSprite("pointg.png", t.Mat4())
@@ -60,14 +64,10 @@ func main() {
 			{1, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 2},
 		},
 	}
-	CurrentLevel = t
+	CurrentLevel = []Collider{t.Collider}
 	actors.Spawn(t)
 	actors.Spawn(&Player{})
 	actors.Spawn(&RayTest{})
-	//i := &Item{Name: "Thingy", Description: "hello there", Icon: "bnw.png"}
-	//actors.Spawn(i)
-	//i.SetPosition2D(640/2+32, 400/2)
-
 	actors.SpawnAt(ItemDictionary("thingy.xml"), transform.Location2D(640/2+16, 480/2, 16, 16))
 	actors.SpawnAt(ItemDictionary("otherthingy.json"), transform.Location2D(640/2+32, 480/2, 16, 16))
 

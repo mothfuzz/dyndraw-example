@@ -42,7 +42,7 @@ type Player struct {
 	itemPickup actors.Channel
 }
 
-var CurrentLevel *TileMap = nil
+var CurrentLevel []Collider = nil
 
 const pw = 16
 const ph = 16
@@ -56,6 +56,9 @@ func (p *Player) Init() {
 	p.xspeedMax = 8
 	p.yspeedMax = 6
 	p.xfriction = 0.8
+
+	p.Collider = NewBoundingSphere(0.5)
+	p.Collider.IgnoreRaycast = true
 
 	p.items = []Item{}
 	p.itemPickup = actors.Listen(p, Item{}) //listen for items
@@ -89,7 +92,7 @@ func (p *Player) MoveX() {
 	}
 
 	//initial movement, avoiding walls
-	xadj, yadj, _ := MoveAgainstPlanes(&p.Transform, CurrentLevel.Planes, pw/2-0.5, p.xspeed, 0, 0)
+	xadj, yadj, _ := MoveAgainstPlanes(&p.Transform, CurrentLevel[0].Planes, pw/2-0.5, p.xspeed, 0, 0)
 	p.xspeed = xadj
 	p.Translate2D(p.xspeed, yadj)
 }
@@ -123,8 +126,8 @@ func (p *Player) MoveY() {
 	feet := p.GetPositionV() //.Add(Vec3{0, ph / 2, 0})
 	leftFoot := feet.Add(Vec3{-pw / 3.0, 0, 0})
 	rightFoot := feet.Add(Vec3{pw / 3.0, 0, 0})
-	leftHit, leftOk := RayCastLen(leftFoot, CurrentLevel.Planes, Vec3{0, 1, 0}, ph)
-	rightHit, rightOk := RayCastLen(rightFoot, CurrentLevel.Planes, Vec3{0, 1, 0}, ph)
+	leftHit, leftOk := RayCastLen(leftFoot, Vec3{0, 1, 0}, ph)
+	rightHit, rightOk := RayCastLen(rightFoot, Vec3{0, 1, 0}, ph)
 	if p.state == ground {
 		highestY := p.Y()
 		if leftOk && rightOk {
@@ -150,7 +153,7 @@ func (p *Player) MoveY() {
 	}
 
 	//avoid planes
-	xadj, yadj, _ := MoveAgainstPlanes(&p.Transform, CurrentLevel.Planes, pw/2-0.5, 0, p.yspeed, 0)
+	xadj, yadj, _ := MoveAgainstPlanes(&p.Transform, CurrentLevel[0].Planes, pw/2-0.5, 0, p.yspeed, 0)
 	p.yspeed = yadj
 	p.Translate2D(xadj, p.yspeed)
 }
@@ -167,6 +170,7 @@ func (p *Player) Update() {
 
 	if input.IsKeyDown("left ctrl") {
 		mx, my := input.GetMousePosition()
+		//p.SetPosition2D(float32(mx), float32(my))
 		render.ActiveCamera.Look2D(Vec2{p.X() + float32(mx) - 640/2, p.Y() + float32(my) - 400/2})
 	} else {
 		render.ActiveCamera.Look2D(Vec2{p.X(), p.Y()})
@@ -181,7 +185,7 @@ func (p *Player) Update() {
 		select {
 		case item := <-p.itemPickup:
 			i := item.(Item)
-			fmt.Printf("Got a %s! \"%s\"\n", i.Name, i.Description)
+			fmt.Printf("Player grabbed a %s! \"%s\"\n", i.Name, i.Description)
 			p.items = append(p.items, i)
 		default:
 			return

@@ -1,24 +1,129 @@
 package main
 
 import (
-	//"fmt"
 	"math"
 
-	//"github.com/mothfuzz/dyndraw/framework/actors"
 	"github.com/mothfuzz/dyndraw/framework/actors"
 	"github.com/mothfuzz/dyndraw/framework/transform"
 	. "github.com/mothfuzz/dyndraw/framework/vecmath"
 )
 
-type AABB struct {
-	min Vec3
-	max Vec3
+type Extents struct {
+	Min Vec3
+	Max Vec3
 }
+
+type CollisionShape uint8
+
+const (
+	CollisionMesh CollisionShape = iota
+	BoundingSphere
+	BoundingBox
+)
 
 //can do narrow phase and broad phase collision in one convenient struct
 type Collider struct {
-	Planes      []Plane
-	BoundingBox AABB //can also be used for radius test.
+	Planes        []Plane
+	Shape         CollisionShape //defaults to mesh test but overridable for simpler collisions
+	Extents                      //can be used for bounding box test & radius test
+	IgnoreRaycast bool           //it's expensive.
+}
+
+func min3(a, b, c float32) float32 {
+	min := float32(math.MaxFloat32)
+	if a < min {
+		min = a
+	}
+	if b < min {
+		min = b
+	}
+	if c < min {
+		min = c
+	}
+	return min
+}
+func max3(a, b, c float32) float32 {
+	max := float32(-math.MaxFloat32)
+	if a > max {
+		max = a
+	}
+	if b > max {
+		max = b
+	}
+	if c > max {
+		max = c
+	}
+	return max
+}
+func min2(a float32, b float32) float32 {
+	if a < b {
+		return a
+	} else {
+		return b
+	}
+}
+func max2(a float32, b float32) float32 {
+	if a > b {
+		return a
+	} else {
+		return b
+	}
+}
+func CalculateExtents(planes []Plane) Extents {
+	pInf := float32(+math.MaxFloat32)
+	nInf := float32(-math.MaxFloat32)
+	minx, miny, minz := pInf, pInf, pInf
+	maxx, maxy, maxz := nInf, nInf, nInf
+	for _, p := range planes {
+		a := p.points[0]
+		b := p.points[1]
+		c := p.points[2]
+		minx = min2(minx, min3(a.X(), b.X(), c.X()))
+		miny = min2(miny, min3(a.Y(), b.Y(), c.Y()))
+		minz = min2(minz, min3(a.Z(), b.Z(), c.Z()))
+		maxx = max2(maxx, max3(a.X(), b.X(), c.X()))
+		maxy = max2(maxy, max3(a.Y(), b.Y(), c.Y()))
+		maxz = max2(maxz, max3(a.Z(), b.Z(), c.Z()))
+	}
+	return Extents{Vec3{minx, miny, minz}, Vec3{maxx, maxy, maxz}}
+}
+func TransformPlane(p Plane, t transform.Transform) Plane {
+	model := t.Mat4()
+	origin := model.Mul4x1(p.origin.Vec4(1.0)).Vec3()
+	normal := model.Mul4x1(p.normal.Vec4(0.0)).Vec3()
+	a := model.Mul4x1(p.points[0].Vec4(1.0)).Vec3()
+	b := model.Mul4x1(p.points[1].Vec4(1.0)).Vec3()
+	c := model.Mul4x1(p.points[2].Vec4(1.0)).Vec3()
+	return Plane{origin, normal, [3]Vec3{a, b, c}}
+}
+func TransformCollider(c Collider, t transform.Transform) Collider {
+	c2 := Collider{Shape: c.Shape, IgnoreRaycast: c.IgnoreRaycast}
+	c2.Planes = make([]Plane, len(c.Planes))
+	copy(c2.Planes, c.Planes)
+	for i := range c.Planes {
+		c2.Planes[i] = TransformPlane(c.Planes[i], t)
+	}
+	c2.Extents = CalculateExtents(c2.Planes)
+	return c2
+}
+
+func NewCollisionMesh(planes []Plane) Collider {
+	return Collider{planes, CollisionMesh, CalculateExtents(planes), false}
+}
+func NewBoundingBox(w, h float32) Collider {
+	c := NewCollisionMesh([]Plane{
+		NewXPlane(0, -h/2, h),
+		NewXPlane(0, +h/2, h),
+		NewYPlane(-w/2, 0, w),
+		NewYPlane(+w/2, 0, w),
+	})
+	c.Shape = BoundingBox
+	return c
+}
+func NewBoundingSphere(r float32) Collider {
+	c := NewBoundingBox(r*2, r*2)
+	c.Shape = BoundingSphere
+	return c
 }
 
 func (c *Collider) GetCollider() *Collider {
@@ -51,6 +156,13 @@ func NewPlane(x, y, z float32, a, b, c Vec3) Plane {
 	t := Vec3{x, y, z}
 	n := triNorm(a, b, c)
 	return Plane{t, n, [3]Vec3{a, b, c}}
+}
+func NewPlane2D(a Vec2, b Vec2) Plane {
+	l := a.Sub(b).Len()
+	t := a.Sub(b).Mul(0.5)
+	c := t.Vec3(l)
+	n := triNorm(a.Vec3(0), b.Vec3(0), c)
+	return Plane{t.Vec3(0), n, [3]Vec3{a.Vec3(0), b.Vec3(0), c}}
 }
 
 func insideTriangleVertices(p Vec3, r float32, a, b, c Vec3) bool {
@@ -163,29 +275,41 @@ func MoveAgainstPlanes(t *transform.Transform, planes []Plane, radius float32, x
 }
 
 type RayHit struct {
+	actors.Actor
 	Plane
 	I Vec3
 }
 
-func RayCast(pos Vec3, planes []Plane, ray Vec3) []RayHit {
+func RayCast(pos Vec3, ray Vec3) []RayHit {
 	hits := []RayHit{}
-	for _, p := range planes {
-		rdot1 := ray.Dot(p.normal)
-		rdot2 := p.origin.Sub(pos).Dot(p.normal)
-		t := rdot2 / rdot1
-		i := pos.Add(ray.Mul(t))
-		if t >= 0 && //t <= 1 && //t > 1 if plane exceeds distance
-			pointInTriangle(i, p.points[0], p.points[1], p.points[2]) {
-			hits = append(hits, RayHit{p, i})
+	actors.All(func(ac actors.Actor) {
+		if c, ok := ac.(HasCollider); ok {
+			if c.GetCollider().IgnoreRaycast {
+				return
+			}
+			for _, p := range c.GetCollider().Planes {
+				if t, ok := ac.(transform.HasTransform); ok {
+					p = TransformPlane(p, *t.GetTransform())
+				}
+
+				rdot1 := ray.Dot(p.normal)
+				rdot2 := p.origin.Sub(pos).Dot(p.normal)
+				t := rdot2 / rdot1
+				i := pos.Add(ray.Mul(t))
+				if t >= 0 && //t <= 1 && //t > 1 if plane exceeds distance
+					pointInTriangle(i, p.points[0], p.points[1], p.points[2]) {
+					hits = append(hits, RayHit{ac, p, i})
+				}
+			}
 		}
-	}
+	})
 	return hits
 }
-func RayCastLen(pos Vec3, planes []Plane, ray Vec3, l float32) (RayHit, bool) {
+func RayCastLen(pos Vec3, ray Vec3, l float32) (RayHit, bool) {
 	ll := l * l
 	shortest := ll
 	ok, hit := false, RayHit{}
-	for _, p := range RayCast(pos, planes, ray) {
+	for _, p := range RayCast(pos, ray) {
 		dist := p.I.Sub(pos).LenSqr()
 		if dist <= shortest {
 			shortest = dist
@@ -218,4 +342,37 @@ func Distance(a actors.Actor, b actors.Actor) float32 {
 		}
 	}
 	return float32(math.Inf(1))
+}
+
+func Overlaps(a actors.Actor, b actors.Actor) bool {
+	if ca, ok := a.(HasCollider); ok {
+		if cb, ok := b.(HasCollider); ok {
+			aa := *ca.GetCollider()
+			bb := *cb.GetCollider()
+			if at, ok := a.(transform.HasTransform); ok {
+				aa = TransformCollider(aa, *at.GetTransform())
+			}
+			if bt, ok := b.(transform.HasTransform); ok {
+				bb = TransformCollider(bb, *bt.GetTransform())
+			}
+			if aa.Shape == BoundingSphere && bb.Shape == BoundingSphere {
+				ra := (aa.Extents.Max.X() - aa.Extents.Min.X()) / 2.0
+				rb := (bb.Extents.Max.X() - bb.Extents.Min.X()) / 2.0
+				if Distance(a, b) <= ra+rb {
+					return true
+				} else {
+					return false
+				}
+			}
+			if aa.Shape == BoundingBox && bb.Shape == BoundingBox {
+				return aa.Extents.Min.X() <= bb.Extents.Max.X() &&
+					aa.Extents.Max.X() >= bb.Extents.Min.X() &&
+					aa.Extents.Max.Y() >= bb.Extents.Min.Y() &&
+					aa.Extents.Max.Y() >= bb.Extents.Min.Y() &&
+					aa.Extents.Max.Z() >= bb.Extents.Min.Z() &&
+					aa.Extents.Max.Z() >= bb.Extents.Min.Z()
+			}
+		}
+	}
+	return false
 }

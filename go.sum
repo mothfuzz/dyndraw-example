@@ -6,6 +6,12 @@ github.com/mothfuzz/dyndraw v0.0.0-20220104212617-267915e33cb0 h1:coqIDjYK0yyd9m
 github.com/mothfuzz/dyndraw v0.0.0-20220104212617-267915e33cb0/go.mod h1:1/cAxr36sTdHnZLPIJrJmdDLWv9yw44U5FTWgR3jZq8=
 github.com/mothfuzz/dyndraw v0.0.0-20220104215837-c239e116a65c h1:1l8kuo+YCCtgn+4wH0Vl7yvhF+nAwpu7hhiev00VcUc=
 github.com/mothfuzz/dyndraw v0.0.0-20220104215837-c239e116a65c/go.mod h1:1/cAxr36sTdHnZLPIJrJmdDLWv9yw44U5FTWgR3jZq8=
+github.com/mothfuzz/dyndraw v0.0.0-20220105030446-45dc45950ded h1:fuCeEDD3khvEZyZtD8XiPlFNmAmueZsGrpJCP1c36l0=
+github.com/mothfuzz/dyndraw v0.0.0-20220105030446-45dc45950ded/go.mod h1:1/cAxr36sTdHnZLPIJrJmdDLWv9yw44U5FTWgR3jZq8=
+github.com/mothfuzz/dyndraw v0.0.0-20220105080749-898ca014a9c9 h1:SoJNGGYAzTMajNfdmpWxft2pqGdNYzzLEI12wiinrTo=
+github.com/mothfuzz/dyndraw v0.0.0-20220105080749-898ca014a9c9/go.mod h1:1/cAxr36sTdHnZLPIJrJmdDLWv9yw44U5FTWgR3jZq8=
+github.com/mothfuzz/dyndraw v0.0.0-20220105082849-f8d69041af96 h1:/+Zi0sVqwYq0gjc2YNRPNe+3YrPq+U2EQt95oFGaSuI=
+github.com/mothfuzz/dyndraw v0.0.0-20220105082849-f8d69041af96/go.mod h1:1/cAxr36sTdHnZLPIJrJmdDLWv9yw44U5FTWgR3jZq8=
 github.com/veandco/go-sdl2 v0.4.10 h1:8QoD2bhWl7SbQDflIAUYWfl9Vq+mT8/boJFAUzAScgY=
 github.com/veandco/go-sdl2 v0.4.10/go.mod h1:OROqMhHD43nT4/i9crJukyVecjPNYYuCofep6SNiAjY=
 golang.org/x/image v0.0.0-20190321063152-3fc05d484e9f h1:FO4MZ3N56GnxbqxGKqh+YTzUWQ2sDwtFQEZgLOxh9Jc=
