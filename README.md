@@ -1,2 +1,2 @@
-# dyndraw-example
-Example project for dyndraw. 'game programmer' mindset rather than 'engine programmer' mindset
+# letsgo-example
+Example project for LetsGo. 'game programmer' mindset rather than 'engine programmer' mindset
