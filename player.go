@@ -4,12 +4,12 @@ import (
 	"fmt"
 	"math"
 
-	"github.com/mothfuzz/dyndraw/framework/actors"
-	"github.com/mothfuzz/dyndraw/framework/collision"
-	"github.com/mothfuzz/dyndraw/framework/input"
-	"github.com/mothfuzz/dyndraw/framework/render"
-	"github.com/mothfuzz/dyndraw/framework/transform"
-	. "github.com/mothfuzz/dyndraw/framework/vecmath"
+	"github.com/mothfuzz/letsgo/actors"
+	"github.com/mothfuzz/letsgo/collision"
+	"github.com/mothfuzz/letsgo/input"
+	"github.com/mothfuzz/letsgo/render"
+	"github.com/mothfuzz/letsgo/transform"
+	. "github.com/mothfuzz/letsgo/vecmath"
 )
 
 type PlayerState int

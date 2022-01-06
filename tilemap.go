@@ -3,10 +3,10 @@ package main
 import (
 	"math"
 
-	"github.com/mothfuzz/dyndraw/framework/collision"
-	"github.com/mothfuzz/dyndraw/framework/render"
-	"github.com/mothfuzz/dyndraw/framework/transform"
-	. "github.com/mothfuzz/dyndraw/framework/vecmath"
+	"github.com/mothfuzz/letsgo/collision"
+	"github.com/mothfuzz/letsgo/render"
+	"github.com/mothfuzz/letsgo/transform"
+	. "github.com/mothfuzz/letsgo/vecmath"
 )
 
 type TileSet struct {

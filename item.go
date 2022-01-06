@@ -6,10 +6,10 @@ import (
 	"io/fs"
 	"path/filepath"
 
-	"github.com/mothfuzz/dyndraw/framework/actors"
-	"github.com/mothfuzz/dyndraw/framework/collision"
-	"github.com/mothfuzz/dyndraw/framework/render"
-	"github.com/mothfuzz/dyndraw/framework/transform"
+	"github.com/mothfuzz/letsgo/actors"
+	"github.com/mothfuzz/letsgo/collision"
+	"github.com/mothfuzz/letsgo/render"
+	"github.com/mothfuzz/letsgo/transform"
 )
 
 type Item struct {

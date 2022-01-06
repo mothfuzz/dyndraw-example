@@ -2,7 +2,7 @@ module moduletest
 
 go 1.17
 
-require github.com/mothfuzz/dyndraw v0.0.0-20220106053928-29db59ac8632
+require github.com/mothfuzz/letsgo v0.0.0-20220106062545-ef5215bfd5e5
 
 require (
 	github.com/go-gl/gl v0.0.0-20211210172815-726fda9656d6 // indirect
