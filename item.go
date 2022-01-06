@@ -24,15 +24,14 @@ func (i *Item) Init() {
 	if i.Transform.GetScaleV().Z() == 0 {
 		i.Transform = transform.Origin2D(16, 16)
 	}
-	i.Collider = NewBoundingSphere(0.5)
+	i.Collider = NewBoundingBox(1, 1)
 	i.IgnoreRaycast = true
 }
 func (i *Item) Destroy() {}
 func (i *Item) Update() {
 	//listeners for Item can pick me up
 	actors.AllListeners(Item{}, func(a actors.Actor) {
-		//if DistanceSqr(a, i) <= 16*16 {
-		if Overlaps(a, i) {
+		if ActorOverlap(a, i) {
 			actors.Send(a, *i)
 			actors.Destroy(i)
 		}

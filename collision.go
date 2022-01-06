@@ -15,6 +15,7 @@ type Extents struct {
 
 type CollisionShape uint8
 
+//in order of complexity...
 const (
 	CollisionMesh CollisionShape = iota
 	BoundingSphere
@@ -329,7 +330,7 @@ func DistanceSqr(a actors.Actor, b actors.Actor) float32 {
 			return ab.LenSqr()
 		}
 	}
-	return float32(math.Inf(1))
+	return float32(math.MaxFloat32)
 }
 
 func Distance(a actors.Actor, b actors.Actor) float32 {
@@ -341,36 +342,63 @@ func Distance(a actors.Actor, b actors.Actor) float32 {
 			return ab.Len()
 		}
 	}
-	return float32(math.Inf(1))
+	return float32(math.MaxFloat32)
 }
 
-func Overlaps(a actors.Actor, b actors.Actor) bool {
+func SphereOverlap(ca Vec3, ra float32, cb Vec3, rb float32) bool {
+	if cb.Sub(ca).Len() <= ra+rb {
+		return true
+	} else {
+		return false
+	}
+}
+func BoxOverlap(aMin Vec3, aMax Vec3, bMin Vec3, bMax Vec3) bool {
+	return aMin.X() <= bMax.X() &&
+		aMax.X() >= bMin.X() &&
+		aMin.Y() <= bMax.Y() &&
+		aMax.Y() >= bMin.Y() &&
+		aMin.Z() <= bMax.Z() &&
+		aMax.Z() >= bMin.Z()
+}
+func SphereBoxOverlap(ca Vec3, ra float32, bMin Vec3, bMax Vec3) bool {
+	x := max2(bMin.X(), min2(ca.X(), bMax.X()))
+	y := max2(bMin.Y(), min2(ca.Y(), bMax.Y()))
+	z := max2(bMin.Z(), min2(ca.Z(), bMax.Z()))
+	p := Vec3{x, y, z}
+	return p.Sub(ca).LenSqr() <= ra*ra
+}
+
+func ActorOverlap(a actors.Actor, b actors.Actor) bool {
 	if ca, ok := a.(HasCollider); ok {
 		if cb, ok := b.(HasCollider); ok {
 			aa := *ca.GetCollider()
 			bb := *cb.GetCollider()
+			//this could be less expensive, i.e. just transform extents
+			//since we're not checking polygons anyway
 			if at, ok := a.(transform.HasTransform); ok {
 				aa = TransformCollider(aa, *at.GetTransform())
 			}
 			if bt, ok := b.(transform.HasTransform); ok {
 				bb = TransformCollider(bb, *bt.GetTransform())
 			}
-			if aa.Shape == BoundingSphere && bb.Shape == BoundingSphere {
-				ra := (aa.Extents.Max.X() - aa.Extents.Min.X()) / 2.0
-				rb := (bb.Extents.Max.X() - bb.Extents.Min.X()) / 2.0
-				if Distance(a, b) <= ra+rb {
-					return true
-				} else {
-					return false
-				}
+			//just check boxes for now
+			//we're not doing polygon-over-polygon collisions
+			if aa.Shape != BoundingSphere && bb.Shape != BoundingSphere {
+				return BoxOverlap(aa.Extents.Min, aa.Extents.Max, bb.Extents.Min, bb.Extents.Max)
 			}
-			if aa.Shape == BoundingBox && bb.Shape == BoundingBox {
-				return aa.Extents.Min.X() <= bb.Extents.Max.X() &&
-					aa.Extents.Max.X() >= bb.Extents.Min.X() &&
-					aa.Extents.Max.Y() >= bb.Extents.Min.Y() &&
-					aa.Extents.Max.Y() >= bb.Extents.Min.Y() &&
-					aa.Extents.Max.Z() >= bb.Extents.Min.Z() &&
-					aa.Extents.Max.Z() >= bb.Extents.Min.Z()
+			//otherwise one of them is a sphere
+			ra := (aa.Extents.Max.X() - aa.Extents.Min.X()) / 2.0
+			rb := (bb.Extents.Max.X() - bb.Extents.Min.X()) / 2.0
+			ca := aa.Extents.Min.Add(aa.Extents.Max).Mul(0.5)
+			cb := aa.Extents.Min.Add(aa.Extents.Max).Mul(0.5)
+			if aa.Shape == BoundingSphere && bb.Shape == BoundingSphere {
+				return SphereOverlap(ca, ra, cb, rb)
+			}
+			if aa.Shape == BoundingSphere && bb.Shape != BoundingSphere {
+				return SphereBoxOverlap(ca, ra, bb.Extents.Min, bb.Extents.Max)
+			}
+			if bb.Shape == BoundingSphere && aa.Shape != BoundingSphere {
+				return SphereBoxOverlap(cb, rb, aa.Extents.Min, aa.Extents.Max)
 			}
 		}
 	}
