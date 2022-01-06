@@ -5,6 +5,7 @@ import (
 	"math"
 
 	"github.com/mothfuzz/dyndraw/framework/actors"
+	"github.com/mothfuzz/dyndraw/framework/collision"
 	"github.com/mothfuzz/dyndraw/framework/input"
 	"github.com/mothfuzz/dyndraw/framework/render"
 	"github.com/mothfuzz/dyndraw/framework/transform"
@@ -36,13 +37,13 @@ type Player struct {
 	grounded         bool
 	groundMultiplier float32
 
-	Collider
+	collision.Collider
 
 	items      []Item
 	itemPickup actors.Channel
 }
 
-var CurrentLevel []Collider = nil
+var CurrentLevel []collision.Collider = nil
 
 const pw = 16
 const ph = 16
@@ -57,7 +58,7 @@ func (p *Player) Init() {
 	p.yspeedMax = 6
 	p.xfriction = 0.8
 
-	p.Collider = NewBoundingSphere(0.5)
+	p.Collider = collision.NewBoundingSphere(0.5)
 	p.Collider.IgnoreRaycast = true
 
 	p.items = []Item{}
@@ -92,7 +93,7 @@ func (p *Player) MoveX() {
 	}
 
 	//initial movement, avoiding walls
-	xadj, yadj, _ := MoveAgainstPlanes(&p.Transform, CurrentLevel[0].Planes, pw/2-0.5, p.xspeed, 0, 0)
+	xadj, yadj, _ := collision.MoveAgainstPlanes(&p.Transform, CurrentLevel[0].Planes, pw/2-0.5, p.xspeed, 0, 0)
 	p.xspeed = xadj
 	p.Translate2D(p.xspeed, yadj)
 }
@@ -126,8 +127,8 @@ func (p *Player) MoveY() {
 	feet := p.GetPositionV() //.Add(Vec3{0, ph / 2, 0})
 	leftFoot := feet.Add(Vec3{-pw / 3.0, 0, 0})
 	rightFoot := feet.Add(Vec3{pw / 3.0, 0, 0})
-	leftHit, leftOk := RayCastLen(leftFoot, Vec3{0, 1, 0}, ph)
-	rightHit, rightOk := RayCastLen(rightFoot, Vec3{0, 1, 0}, ph)
+	leftHit, leftOk := collision.RayCastLen(leftFoot, Vec3{0, 1, 0}, ph)
+	rightHit, rightOk := collision.RayCastLen(rightFoot, Vec3{0, 1, 0}, ph)
 	if p.state == ground {
 		highestY := p.Y()
 		if leftOk && rightOk {
@@ -153,7 +154,7 @@ func (p *Player) MoveY() {
 	}
 
 	//avoid planes
-	xadj, yadj, _ := MoveAgainstPlanes(&p.Transform, CurrentLevel[0].Planes, pw/2-0.5, 0, p.yspeed, 0)
+	xadj, yadj, _ := collision.MoveAgainstPlanes(&p.Transform, CurrentLevel[0].Planes, pw/2-0.5, 0, p.yspeed, 0)
 	p.yspeed = yadj
 	p.Translate2D(xadj, p.yspeed)
 }

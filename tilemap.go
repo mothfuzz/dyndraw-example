@@ -3,6 +3,7 @@ package main
 import (
 	"math"
 
+	"github.com/mothfuzz/dyndraw/framework/collision"
 	"github.com/mothfuzz/dyndraw/framework/render"
 	"github.com/mothfuzz/dyndraw/framework/transform"
 	. "github.com/mothfuzz/dyndraw/framework/vecmath"
@@ -15,25 +16,25 @@ type TileSet struct {
 }
 
 //-
-func NewXPlane(x, y, l float32) Plane {
+func NewXPlane(x, y, l float32) collision.Plane {
 	a := Vec3{x, y, -l}
 	b := Vec3{x + l/2, y, 0}
 	c := Vec3{x - l/2, y, 0}
-	return NewPlane(x, y, 0, a, b, c)
+	return collision.NewPlaneAt(x, y, 0, a, b, c)
 }
 
 //|
-func NewYPlane(x, y, l float32) Plane {
+func NewYPlane(x, y, l float32) collision.Plane {
 	a := Vec3{x, y, -l}
 	b := Vec3{x, y - l/2, 0}
 	c := Vec3{x, y + l/2, 0}
-	return NewPlane(x, y, 0, a, b, c)
+	return collision.NewPlaneAt(x, y, 0, a, b, c)
 }
 
 type TileMap struct {
 	TileSet
 	Data [][]uint8
-	Collider
+	collision.Collider
 	render.SpriteAnimation
 	tileTransform transform.Transform
 }
@@ -94,9 +95,9 @@ func (t *TileMap) Init() {
 				h := float32(t.TileSet.TH)
 				switch t.Data[i][j] {
 				case 1:
-					t.Planes = append(t.Planes, NewPlane(x, y, 0, Vec3{x, y, -w}, Vec3{x + w/2, y - h/2, 0}, Vec3{x - w/2, y + h/2, 0}))
+					t.Planes = append(t.Planes, collision.NewPlaneAt(x, y, 0, Vec3{x, y, -w}, Vec3{x + w/2, y - h/2, 0}, Vec3{x - w/2, y + h/2, 0}))
 				case 2:
-					t.Planes = append(t.Planes, NewPlane(x, y, 0, Vec3{x, y, -w}, Vec3{x + w/2, y + h/2, 0}, Vec3{x - w/2, y - h/2, 0}))
+					t.Planes = append(t.Planes, collision.NewPlaneAt(x, y, 0, Vec3{x, y, -w}, Vec3{x + w/2, y + h/2, 0}, Vec3{x - w/2, y - h/2, 0}))
 				case 3:
 					if !tileOccupied(t, j, i-1, []uint8{1, 2, 3}) {
 						t.Planes = append(t.Planes, NewXPlane(x, y-h/2, h))

@@ -5,6 +5,7 @@ import (
 
 	"github.com/mothfuzz/dyndraw/framework/actors"
 	"github.com/mothfuzz/dyndraw/framework/app"
+	"github.com/mothfuzz/dyndraw/framework/collision"
 	"github.com/mothfuzz/dyndraw/framework/input"
 	"github.com/mothfuzz/dyndraw/framework/render"
 	"github.com/mothfuzz/dyndraw/framework/transform"
@@ -29,11 +30,11 @@ func (r *RayTest) Draw() {
 	render.DrawSprite("pointg.png", t.Mat4())
 
 	ray := endPoint.Sub(startPoint).Normalize()
-	for _, p := range RayCast(startPoint, ray) {
+	for _, p := range collision.RayCast(startPoint, ray) {
 		t.SetPosition(p.I.X(), p.I.Y(), -1)
 		render.DrawSprite("point.png", t.Mat4())
 	}
-	if hit, ok := RayCastLen(startPoint, ray, 640/2); ok {
+	if hit, ok := collision.RayCastLen(startPoint, ray, 640/2); ok {
 		t := transform.Origin2D(4, 4)
 		t.SetPosition(hit.I.X(), hit.I.Y(), -2)
 		render.DrawSprite("pointg.png", t.Mat4())
@@ -64,7 +65,7 @@ func main() {
 			{1, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 2},
 		},
 	}
-	CurrentLevel = []Collider{t.Collider}
+	CurrentLevel = []collision.Collider{t.Collider}
 	actors.Spawn(t)
 	actors.Spawn(&Player{})
 	actors.Spawn(&RayTest{})

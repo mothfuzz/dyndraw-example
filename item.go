@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 
 	"github.com/mothfuzz/dyndraw/framework/actors"
+	"github.com/mothfuzz/dyndraw/framework/collision"
 	"github.com/mothfuzz/dyndraw/framework/render"
 	"github.com/mothfuzz/dyndraw/framework/transform"
 )
@@ -17,21 +18,21 @@ type Item struct {
 	Icon        string
 	Sprite      string
 	transform.Transform
-	Collider
+	collision.Collider
 }
 
 func (i *Item) Init() {
 	if i.Transform.GetScaleV().Z() == 0 {
 		i.Transform = transform.Origin2D(16, 16)
 	}
-	i.Collider = NewBoundingBox(1, 1)
+	i.Collider = collision.NewBoundingBox(1, 1, 1)
 	i.IgnoreRaycast = true
 }
 func (i *Item) Destroy() {}
 func (i *Item) Update() {
 	//listeners for Item can pick me up
 	actors.AllListeners(Item{}, func(a actors.Actor) {
-		if ActorOverlap(a, i) {
+		if collision.ActorOverlap(a, i) {
 			actors.Send(a, *i)
 			actors.Destroy(i)
 		}
