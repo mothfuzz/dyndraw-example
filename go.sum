@@ -10,6 +10,12 @@ github.com/mothfuzz/letsgo v0.0.0-20220113011457-af3369238fc4 h1:S8Ylri4x0MYj2Er
 github.com/mothfuzz/letsgo v0.0.0-20220113011457-af3369238fc4/go.mod h1:nb2QGGGJ1VYaqLScnqxkMXMHkZaiZVqC/kuuCRM/1h4=
 github.com/mothfuzz/letsgo v0.0.0-20220115103739-e35963135054 h1:xe3tmoEQ+zvfMiFxB19W5h2sJ7zwumzsVr2K5kt23z4=
 github.com/mothfuzz/letsgo v0.0.0-20220115103739-e35963135054/go.mod h1:nb2QGGGJ1VYaqLScnqxkMXMHkZaiZVqC/kuuCRM/1h4=
+github.com/mothfuzz/letsgo v0.0.0-20220117033851-201f2cb2f58e h1:serLmPhYpxmqM9THz+yjYKQ0WUlUamjgwY4YSmG89FA=
+github.com/mothfuzz/letsgo v0.0.0-20220117033851-201f2cb2f58e/go.mod h1:nb2QGGGJ1VYaqLScnqxkMXMHkZaiZVqC/kuuCRM/1h4=
+github.com/mothfuzz/letsgo v0.0.0-20220117052412-59d03785127e h1:AxAkLKI97B41CCMq4uIwdqbdBZN//OM7MuHXc9vCgs4=
+github.com/mothfuzz/letsgo v0.0.0-20220117052412-59d03785127e/go.mod h1:nb2QGGGJ1VYaqLScnqxkMXMHkZaiZVqC/kuuCRM/1h4=
+github.com/mothfuzz/letsgo v0.0.0-20220117054623-f67452258c6e h1:IpaeZs7pjxGt3yHvaE/AWeUjCnWho2Q1rRNOdkBaA4w=
+github.com/mothfuzz/letsgo v0.0.0-20220117054623-f67452258c6e/go.mod h1:nb2QGGGJ1VYaqLScnqxkMXMHkZaiZVqC/kuuCRM/1h4=
 github.com/veandco/go-sdl2 v0.4.11 h1:Swle6dX6zPoP2mGNMU/R589ET+nnWLeC4Ic+mn2xzfc=
 github.com/veandco/go-sdl2 v0.4.11/go.mod h1:OROqMhHD43nT4/i9crJukyVecjPNYYuCofep6SNiAjY=
 golang.org/x/image v0.0.0-20190321063152-3fc05d484e9f h1:FO4MZ3N56GnxbqxGKqh+YTzUWQ2sDwtFQEZgLOxh9Jc=

@@ -5,7 +5,6 @@ import (
 
 	"github.com/mothfuzz/letsgo/actors"
 	"github.com/mothfuzz/letsgo/app"
-	"github.com/mothfuzz/letsgo/collision"
 	"github.com/mothfuzz/letsgo/resources"
 	"github.com/mothfuzz/letsgo/transform"
 )
@@ -40,7 +39,7 @@ func main() {
 			{1, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 2},
 		},
 	}
-	CurrentLevel = []collision.Collider{t.Collider}
+	CurrentLevel = t
 	actors.Spawn(t)
 	actors.Spawn(&Player{})
 	actors.SpawnAt(ItemDictionary("thingy.xml"), transform.Location2D(640/2+16, 480/2, 16, 16))

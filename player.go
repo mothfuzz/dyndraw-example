@@ -43,7 +43,7 @@ type Player struct {
 	actors.Mailbox
 }
 
-var CurrentLevel []collision.Collider = nil
+var CurrentLevel *TileMap = nil
 
 const pw = 16
 const ph = 16
@@ -93,10 +93,12 @@ func (p *Player) MoveX() {
 	}
 
 	//initial movement, avoiding walls
-	xadj, yadj, _ := collision.MoveAgainstPlanes(&p.Transform, CurrentLevel[0].Planes, pw/2-0.5, p.xspeed, 0, 0)
+	xadj, yadj, _ := collision.MoveAgainstPlanes(&p.Transform, CurrentLevel.Planes, pw/2-0.5, p.xspeed, 0, 0)
 	p.xspeed = xadj
 	p.Translate2D(p.xspeed, yadj)
 }
+
+//TODO: visual inventory system, weaponry system probably
 
 func (p *Player) MoveY() {
 
@@ -129,24 +131,22 @@ func (p *Player) MoveY() {
 	rightFoot := feet.Add(Vec3{pw / 3.0, 0, 0})
 	leftHit, leftOk := collision.RayCastLen(leftFoot, Vec3{0, 1, 0}, ph)
 	rightHit, rightOk := collision.RayCastLen(rightFoot, Vec3{0, 1, 0}, ph)
-	if p.state == ground {
+	if (leftOk || rightOk) && p.state != jumping {
+		p.yspeed = 0
+		p.state = ground
 		highestY := p.Y()
 		if leftOk && rightOk {
-			highestY = float32(math.Min(float64(leftHit.I.Y()), float64(rightHit.I.Y()))) - ph/2
+			highestY = float32(math.Min(float64(leftHit.Point.Y()), float64(rightHit.Point.Y()))) - ph/2
 		}
 		if leftOk && !rightOk {
-			highestY = leftHit.I.Y() - ph/2
+			highestY = leftHit.Point.Y() - ph/2
 		}
 		if rightOk && !leftOk {
-			highestY = rightHit.I.Y() - ph/2
+			highestY = rightHit.Point.Y() - ph/2
 		}
 		if p.Y()+ph/2 >= highestY {
 			p.SetPosition2D(p.X(), highestY)
 		}
-	}
-	if (leftOk || rightOk) && p.state != jumping {
-		p.yspeed = 0
-		p.state = ground
 	} else {
 		if p.state == ground {
 			p.state = falling
@@ -154,9 +154,8 @@ func (p *Player) MoveY() {
 	}
 
 	//avoid planes
-	xadj, yadj, _ := collision.MoveAgainstPlanes(&p.Transform, CurrentLevel[0].Planes, pw/2-0.5, 0, p.yspeed, 0)
-	p.yspeed = yadj
-	p.Translate2D(xadj, p.yspeed)
+	_, p.yspeed, _ = collision.MoveAgainstPlanes(&p.Transform, CurrentLevel.Planes, pw/2-0.5, 0, p.yspeed, 0)
+	p.Translate2D(0, p.yspeed)
 }
 
 func (p *Player) Update() {
@@ -171,8 +170,9 @@ func (p *Player) Update() {
 
 	if input.IsKeyDown("left ctrl") {
 		mx, my := input.GetMousePosition()
-		//p.SetPosition2D(float32(mx), float32(my))
-		render.ActiveCamera.Look2D(Vec2{p.X() + float32(mx) - 640/2, p.Y() + float32(my) - 400/2})
+		v := render.RelativeToCamera(mx, my)
+		p.SetPosition2D(v.X(), v.Y())
+		//render.ActiveCamera.Look2D(Vec2{p.X() + float32(mx) - 640/2, p.Y() + float32(my) - 400/2})
 	} else {
 		render.ActiveCamera.Look2D(Vec2{p.X(), p.Y()})
 	}
@@ -200,4 +200,17 @@ func (p *Player) Destroy() {
 }
 func (p *Player) Draw() {
 	render.DrawSprite("player.png", p.Transform.Mat4())
+	/*for i := range CurrentLevel.Planes {
+		p := CurrentLevel.Planes[i]
+		a := p.Points()[0]
+		b := p.Points()[1]
+		c := p.Points()[2]
+		t := transform.Origin2D(4, 4)
+		t.SetPosition2D(a.X(), a.Y())
+		render.DrawSprite("point.png", t.Mat4())
+		t.SetPosition2D(b.X(), b.Y())
+		render.DrawSprite("point.png", t.Mat4())
+		t.SetPosition2D(c.X(), c.Y())
+		render.DrawSprite("point.png", t.Mat4())
+	}*/
 }
