@@ -39,8 +39,8 @@ type Player struct {
 
 	collision.Collider
 
-	items      []Item
-	itemPickup actors.Channel
+	items []Item
+	actors.Mailbox
 }
 
 var CurrentLevel []collision.Collider = nil
@@ -62,7 +62,7 @@ func (p *Player) Init() {
 	p.Collider.IgnoreRaycast = true
 
 	p.items = []Item{}
-	p.itemPickup = actors.Listen(p, Item{}) //listen for items
+	p.Mailbox = actors.Listen(p, Item{}) //listen for items
 }
 
 func (p *Player) ProcessInput() {
@@ -184,10 +184,12 @@ func (p *Player) Update() {
 	}
 	for {
 		select {
-		case item := <-p.itemPickup:
-			i := item.(Item)
-			fmt.Printf("Player grabbed a %s! \"%s\"\n", i.Name, i.Description)
-			p.items = append(p.items, i)
+		case m := <-p.Mailbox:
+			switch m := m.(type) {
+			case Item:
+				fmt.Printf("Player grabbed a %s! \"%s\"\n", m.Name, m.Description)
+				p.items = append(p.items, m)
+			}
 		default:
 			return
 		}

@@ -9,6 +9,7 @@ import (
 	"github.com/mothfuzz/letsgo/actors"
 	"github.com/mothfuzz/letsgo/collision"
 	"github.com/mothfuzz/letsgo/render"
+	"github.com/mothfuzz/letsgo/resources"
 	"github.com/mothfuzz/letsgo/transform"
 )
 
@@ -50,12 +51,12 @@ func (i *Item) Draw() {
 var itemDictionary = map[string]Item{}
 
 func LoadItemDictionary() {
-	err := fs.WalkDir(render.Resources, "resources/items", func(path string, d fs.DirEntry, err error) error {
+	err := fs.WalkDir(resources.Resources, "resources/items", func(path string, d fs.DirEntry, err error) error {
 		if d.IsDir() {
 			return nil
 		}
 		var item Item
-		file, err := fs.ReadFile(render.Resources, path)
+		file, err := fs.ReadFile(resources.Resources, path)
 		if err != nil {
 			return err
 		}
