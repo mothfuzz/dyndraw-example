@@ -32,10 +32,10 @@ func (i *Item) Init() {
 func (i *Item) Destroy() {}
 func (i *Item) Update() {
 	//listeners for Item can pick me up
-	actors.AllListeners(Item{}, func(a actors.Actor) {
+	actors.AllListeners(&Item{}, func(a actors.Actor) {
 		if collision.ActorOverlap(a, i) {
-			actors.Send(a, *i)
-			actors.Destroy(i)
+			actors.Send(a, i)
+			//actors.Destroy(i)
 		}
 	})
 }

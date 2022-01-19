@@ -69,14 +69,14 @@ func (t *TileMap) offsets() (float32, float32) {
 func (t *TileMap) Init() {
 	t.tileTransform = transform.Origin2D(t.TileSet.TW, t.TileSet.TH)
 	t.SpriteAnimation = render.SpriteAnimation{
-		Frames: [][]float32{},
+		Frames: []render.Frame{},
 		Tags:   map[string][]int{"tiles": {}},
 	}
 	totalWidth := float32(t.TileSet.W * t.TileSet.TW)
 	totalHeight := float32(t.TileSet.H * t.TileSet.TH)
 	for i := 0; i < t.TileSet.H; i++ {
 		for j := 0; j < t.TileSet.W; j++ {
-			t.SpriteAnimation.Frames = append(t.SpriteAnimation.Frames, []float32{
+			t.SpriteAnimation.Frames = append(t.SpriteAnimation.Frames, render.Frame{
 				float32(j*t.TileSet.TW) / totalWidth,
 				float32(i*t.TileSet.TH) / totalHeight,
 				float32(t.TileSet.TW) / totalWidth,

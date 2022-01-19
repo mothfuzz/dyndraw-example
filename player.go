@@ -12,6 +12,73 @@ import (
 	. "github.com/mothfuzz/letsgo/vecmath"
 )
 
+type Inventory struct {
+	render.SpriteAnimation
+	Visible  bool
+	Capacity int
+	Items    []Item
+}
+
+func (inv *Inventory) Init() {
+	inv.Visible = false
+	//inv.Items = make([]Item, inv.Capacity)
+	inv.SpriteAnimation = render.SpriteAnimation{
+		Frames: []render.Frame{
+			{X: 0.0, Y: 0.0, W: 0.5, H: 1.0},
+			{X: 0.5, Y: 0.0, W: 0.5, H: 1.0},
+		},
+		Tags: map[string][]int{
+			"border": {0},
+			"center": {1},
+		},
+	}
+}
+func (*Inventory) Update()  {}
+func (*Inventory) Destroy() {}
+func (inv *Inventory) Draw() {
+	if inv.Visible {
+		//draw inventory backdrop
+		t := transform.Origin2D(32, 32)
+		t.SetPosition(render.RelativeToCamera(16, 16).Elem())
+		t.Translate(0, 0, -0.5)
+		render.DrawSpriteAnimated("inventory.png", t.Mat4(), inv.SpriteAnimation.GetTexCoords("border", 0))
+		for i := 1; i < inv.Capacity-1; i++ {
+			t.Translate2D(32, 0)
+			render.DrawSpriteAnimated("inventory.png", t.Mat4(), inv.SpriteAnimation.GetTexCoords("center", 0))
+		}
+		t.Translate2D(32, 0)
+		t.SetScale2D(-32, 32)
+		render.DrawSpriteAnimated("inventory.png", t.Mat4(), inv.SpriteAnimation.GetTexCoords("border", 0))
+		t.SetScale2D(32, 32)
+
+		//draw items
+		t = transform.Origin2D(16, 16)
+		t.SetPosition(render.RelativeToCamera(16, 16).Elem())
+		t.Translate(0, 0, -1)
+		for i := 0; i < len(inv.Items); i++ {
+			render.DrawSprite(inv.Items[i].Icon, t.Mat4())
+			t.Translate2D(32, 0)
+		}
+	}
+}
+func (inv *Inventory) AddItem(i *Item) {
+	if len(inv.Items) < inv.Capacity {
+		//remove from world, put in inventory
+		actors.Destroy(i)
+		inv.Items = append(inv.Items, *i)
+		fmt.Printf("grabbed a %s! \"%s\"\n", i.Name, i.Description)
+	}
+}
+func (inv *Inventory) Show() {
+	inv.Visible = true
+}
+func (inv *Inventory) Hide() {
+	inv.Visible = false
+}
+func (inv *Inventory) Toggle() {
+	inv.Visible = !inv.Visible
+}
+
 type PlayerState int
 
 const (
@@ -39,7 +106,7 @@ type Player struct {
 
 	collision.Collider
 
-	items []Item
+	Inventory
 	actors.Mailbox
 }
 
@@ -61,8 +128,9 @@ func (p *Player) Init() {
 	p.Collider = collision.NewBoundingSphere(0.5)
 	p.Collider.IgnoreRaycast = true
 
-	p.items = []Item{}
-	p.Mailbox = actors.Listen(p, Item{}) //listen for items
+	p.Inventory.Capacity = 4
+	actors.Spawn(&p.Inventory)
+	p.Mailbox = actors.Listen(p, &Item{}) //listen for items
 }
 
 func (p *Player) ProcessInput() {
@@ -97,8 +165,6 @@ func (p *Player) MoveX() {
 	p.xspeed = xadj
 	p.Translate2D(p.xspeed, yadj)
 }
-
-//TODO: visual inventory system, weaponry system probably
 
 func (p *Player) MoveY() {
 
@@ -170,11 +236,15 @@ func (p *Player) Update() {
 
 	if input.IsKeyDown("left ctrl") {
 		mx, my := input.GetMousePosition()
-		v := render.RelativeToCamera(mx, my)
-		p.SetPosition2D(v.X(), v.Y())
-		//render.ActiveCamera.Look2D(Vec2{p.X() + float32(mx) - 640/2, p.Y() + float32(my) - 400/2})
+		//v := render.RelativeToCamera(mx, my)
+		//p.SetPosition2D(v.X(), v.Y())
+		render.ActiveCamera.Look2D(Vec2{p.X() + float32(mx) - 640/2, p.Y() + float32(my) - 400/2})
 	} else {
 		render.ActiveCamera.Look2D(Vec2{p.X(), p.Y()})
+	}
+
+	if input.IsKeyPressed("i") {
+		p.Inventory.Toggle()
 	}
 
 	if p.Y()+ph/2 >= 400 {
@@ -186,9 +256,8 @@ func (p *Player) Update() {
 		select {
 		case m := <-p.Mailbox:
 			switch m := m.(type) {
-			case Item:
-				fmt.Printf("Player grabbed a %s! \"%s\"\n", m.Name, m.Description)
-				p.items = append(p.items, m)
+			case *Item:
+				p.Inventory.AddItem(m)
 			}
 		default:
 			return
