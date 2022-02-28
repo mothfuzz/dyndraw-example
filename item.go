@@ -24,9 +24,9 @@ type Item struct {
 
 func (i *Item) Init() {
 	if i.Transform.GetScaleV().Z() == 0 {
-		i.Transform = transform.Origin2D(16, 16)
+		i.Transform = transform.Origin2D()
 	}
-	i.Collider = collision.NewBoundingBox(1, 1, 1)
+	i.Collider = collision.NewBoundingBox(16, 16, 1)
 	i.IgnoreRaycast = true
 }
 func (i *Item) Destroy() {}

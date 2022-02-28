@@ -38,7 +38,7 @@ func (*Inventory) Destroy() {}
 func (inv *Inventory) Draw() {
 	if inv.Visible {
 		//draw inventory backdrop
-		t := transform.Origin2D(32, 32)
+		t := transform.Origin2D()
 		t.SetPosition(render.RelativeToCamera(16, 16).Elem())
 		t.Translate(0, 0, -0.5)
 		render.DrawSpriteAnimated("inventory.png", t.Mat4(), inv.SpriteAnimation.GetTexCoords("border", 0))
@@ -47,12 +47,12 @@ func (inv *Inventory) Draw() {
 			render.DrawSpriteAnimated("inventory.png", t.Mat4(), inv.SpriteAnimation.GetTexCoords("center", 0))
 		}
 		t.Translate2D(32, 0)
-		t.SetScale2D(-32, 32)
+		t.SetScale2D(-1, 1)
 		render.DrawSpriteAnimated("inventory.png", t.Mat4(), inv.SpriteAnimation.GetTexCoords("border", 0))
-		t.SetScale2D(32, 32)
+		t.SetScale2D(1, 1)
 
 		//draw items
-		t = transform.Origin2D(16, 16)
+		t = transform.Origin2D()
 		t.SetPosition(render.RelativeToCamera(16, 16).Elem())
 		t.Translate(0, 0, -1)
 		for i := 0; i < len(inv.Items); i++ {
@@ -116,8 +116,8 @@ const pw = 16
 const ph = 16
 
 func (p *Player) Init() {
-	p.Transform = transform.Origin2D(pw, ph)
-	p.Transform.SetPosition(640/2, 0, 0)
+	p.Transform = transform.Origin2D()
+	p.Transform.SetPosition(640/2-128*2, 0, -0.1)
 	p.state = ground
 	p.hp = 10
 	p.gravity = 0.1
@@ -125,7 +125,7 @@ func (p *Player) Init() {
 	p.yspeedMax = 6
 	p.xfriction = 0.8
 
-	p.Collider = collision.NewBoundingSphere(0.5)
+	p.Collider = collision.NewBoundingSphere(8)
 	p.Collider.IgnoreRaycast = true
 
 	p.Inventory.Capacity = 4
@@ -136,11 +136,11 @@ func (p *Player) Init() {
 func (p *Player) ProcessInput() {
 	if input.IsKeyDown("left") {
 		p.xspeed -= 0.25
-		p.SetScale2D(-pw, ph)
+		p.SetScale2D(-1, 1)
 	}
 	if input.IsKeyDown("right") {
 		p.xspeed += 0.25
-		p.SetScale2D(pw, ph)
+		p.SetScale2D(1, 1)
 	}
 	if input.IsKeyPressed("up") && p.state == ground {
 		p.state = jumping

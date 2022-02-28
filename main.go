@@ -42,12 +42,12 @@ func main() {
 	CurrentLevel = t
 	actors.Spawn(t)
 	actors.Spawn(&Player{})
-	actors.SpawnAt(ItemDictionary("thingy.xml"), transform.Location2D(640/2+16, 480/2, 16, 16))
-	actors.SpawnAt(ItemDictionary("otherthingy.json"), transform.Location2D(640/2+32, 480/2, 16, 16))
-	actors.SpawnAt(ItemDictionary("thingy.xml"), transform.Location2D(640/2+48, 480/2, 16, 16))
-	actors.SpawnAt(ItemDictionary("otherthingy.json"), transform.Location2D(640/2+64, 480/2, 16, 16))
-	actors.SpawnAt(ItemDictionary("thingy.xml"), transform.Location2D(640/2-16, 480/2, 16, 16))
-	actors.SpawnAt(ItemDictionary("otherthingy.json"), transform.Location2D(640/2-32, 480/2, 16, 16))
+	actors.SpawnAt(ItemDictionary("thingy.xml"), transform.Location2D(640/2+16, 480/2-8))
+	actors.SpawnAt(ItemDictionary("otherthingy.json"), transform.Location2D(640/2+32, 480/2-8))
+	actors.SpawnAt(ItemDictionary("thingy.xml"), transform.Location2D(640/2+48, 480/2-8))
+	actors.SpawnAt(ItemDictionary("otherthingy.json"), transform.Location2D(640/2+64, 480/2-8))
+	actors.SpawnAt(ItemDictionary("thingy.xml"), transform.Location2D(640/2-16, 480/2-8))
+	actors.SpawnAt(ItemDictionary("otherthingy.json"), transform.Location2D(640/2-32, 480/2-8))
 
 	for app.PollEvents() {
 		app.Update()
